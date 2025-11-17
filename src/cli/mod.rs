@@ -22,6 +22,7 @@ pub struct GenerateArgs {
     pub filter_tools: Vec<String>,      // --filter-tool dbt,airflow
     pub filter_tags: Vec<String>,       // --filter-tag production,core
     pub filter_namespaces: Vec<String>, // --filter-namespace postgres://prod
+    pub format: Option<String>,         // --format html|svg (auto-detect from extension if not set)
 }
 
 impl Default for GenerateArgs {
@@ -35,6 +36,7 @@ impl Default for GenerateArgs {
             filter_tools: Vec::new(),
             filter_tags: Vec::new(),
             filter_namespaces: Vec::new(),
+            format: None,
         }
     }
 }
@@ -135,6 +137,17 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 gen_args.filter_namespaces.push(args[i + 1].clone());
                 i += 2;
             }
+            "--format" => {
+                if i + 1 >= args.len() {
+                    return Err("--format requires a value (html or svg)".to_string());
+                }
+                let format = &args[i + 1];
+                if !matches!(format.as_str(), "html" | "svg") {
+                    return Err(format!("Invalid format '{}'. Valid options: html, svg", format));
+                }
+                gen_args.format = Some(format.clone());
+                i += 2;
+            }
             arg => return Err(format!("Unknown argument: {}", arg)),
         }
     }
@@ -160,7 +173,8 @@ COMMANDS:
 GENERATE OPTIONS:
     --dbt <PATH>            Path to dbt manifest.json
     --openlineage <PATH>    Path to OpenLineage JSON events (ndjson or array)
-    --output <PATH>         Output SVG file path (default: pipeline.svg)
+    --output <PATH>         Output file path (default: pipeline.svg)
+    --format <FORMAT>       Output format: html, svg (auto-detected from file extension)
     --theme <THEME>         Color theme: light, dark (default: light)
     --quiet, -q             Suppress progress messages (warnings still shown)
 
@@ -193,6 +207,12 @@ EXAMPLES:
 
     # Filter to show only postgres prod database
     lightweaver generate --openlineage events.json --filter-namespace postgres://prod
+
+    # Generate interactive HTML (auto-detected from .html extension)
+    lightweaver generate --openlineage events.json --output pipeline.html
+
+    # Or explicitly specify format
+    lightweaver generate --openlineage events.json --format html --output viz.html
 
 SUPPORTED TOOLS (via OpenLineage):
     dbt, Airflow, Spark, Fivetran, Dagster, Prefect, Flink, Kafka,

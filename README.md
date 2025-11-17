@@ -6,6 +6,7 @@ Universal Data Pipeline Visualizer supporting 100+ tools via [OpenLineage](https
 
 - **Multi-tool support**: dbt, Airflow, Spark, Fivetran, Dagster, Prefect, and any tool that emits OpenLineage events
 - **Cross-tool lineage stitching**: Automatically connects jobs from different tools via matching dataset URNs
+- **Interactive HTML output**: Pan, zoom, search, and click-to-inspect with svg-pan-zoom
 - **Powerful filtering**: Filter by tool type, tags, or namespaces to focus on specific parts of your pipeline
 - **Beautiful visualizations**: Hand-crafted SVG rendering with light/dark themes
 - **Zero dependencies**: Uses only `serde` and `serde_json` - no heavyweight frameworks
@@ -31,11 +32,11 @@ lightweaver = "0.1"
 ### Basic usage
 
 ```bash
-# From dbt manifest
+# Static SVG output
 lightweaver generate --dbt target/manifest.json --output pipeline.svg
 
-# From OpenLineage events
-lightweaver generate --openlineage events.json --output lineage.svg
+# Interactive HTML (auto-detected from .html extension)
+lightweaver generate --openlineage events.json --output lineage.html
 
 # Multi-source with dark theme
 lightweaver generate \
@@ -44,6 +45,9 @@ lightweaver generate \
   --openlineage spark_events.json \
   --theme dark \
   --output merged.svg
+
+# Interactive HTML with explicit format
+lightweaver generate --openlineage events.json --format html --output viz.html
 ```
 
 ### Options
@@ -54,7 +58,8 @@ lightweaver generate [OPTIONS]
 OPTIONS:
     --dbt <PATH>            Path to dbt manifest.json
     --openlineage <PATH>    Path to OpenLineage events (can be specified multiple times)
-    --output <PATH>         Output SVG file path (default: pipeline.svg)
+    --output <PATH>         Output file path (default: pipeline.svg)
+    --format <FORMAT>       Output format: html, svg (auto-detected from extension)
     --theme <THEME>         Color theme: light, dark (default: light)
     --quiet, -q             Suppress progress messages (warnings still shown)
 
@@ -63,6 +68,22 @@ FILTERING:
     --filter-tag <TAG>          Only show nodes with specific tag
     --filter-namespace <NS>     Only show nodes from namespace prefix
 ```
+
+### Interactive HTML Output
+
+Generate interactive visualizations with pan, zoom, and click-to-inspect:
+
+```bash
+lightweaver generate --openlineage events.json --output pipeline.html
+```
+
+**Features:**
+- 🖱️ **Pan & Zoom** - Mouse wheel to zoom, click-drag to pan
+- 🔍 **Search** - Find and highlight nodes by name, ID, or tag
+- 👆 **Click to Inspect** - View full node metadata in sidebar
+- ⌨️ **Keyboard Shortcuts** - `/` to search, `Esc` to close, arrows to navigate
+- 🌓 **Dark Mode Toggle** - Switch themes on the fly
+- 📱 **Responsive** - Works on desktop and mobile
 
 ## Library Usage
 
@@ -159,6 +180,26 @@ let filter = GraphFilter::new().with_tool(ToolType::Dbt);
 viz.set_filter(filter);
 
 let svg = viz.render_svg()?;
+```
+
+### Interactive HTML rendering
+
+Generate interactive HTML with pan, zoom, and node inspection:
+
+```rust
+use lightweaver::PipelineVisualizer;
+
+let mut viz = PipelineVisualizer::new();
+viz.add_openlineage_events("events.json")?;
+
+// Render to interactive HTML
+let html = viz.render_html()?;
+std::fs::write("pipeline.html", html)?;
+
+// Works with dark theme and filters too!
+let mut dark_viz = PipelineVisualizer::new().with_theme("dark");
+dark_viz.add_openlineage_events("events.json")?;
+let dark_html = dark_viz.render_html()?;
 ```
 
 **CLI filtering:**
@@ -286,7 +327,7 @@ PRs welcome!
 - [x] SVG rendering (light/dark themes)
 - [x] Library API
 - [x] Graph filtering (by tool, tag, namespace)
-- [ ] HTML output with interactivity
+- [x] HTML output with interactivity
 - [ ] PNG/PDF export
 - [ ] Configuration file support
 - [ ] Plugin system for custom parsers

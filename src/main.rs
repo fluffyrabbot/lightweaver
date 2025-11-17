@@ -153,21 +153,36 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("   Consider filtering your input data or splitting into multiple visualizations.");
     }
 
-    // Render to SVG
-    if !quiet {
-        println!("🎨 Rendering SVG...");
-    }
-    let svg = viz.render_svg()?;
-    let svg_bytes = svg.as_bytes();
+    // Determine output format (explicit --format or auto-detect from extension)
+    let format = args.format.as_deref().unwrap_or_else(|| {
+        if args.output.extension().and_then(|s| s.to_str()) == Some("html") {
+            "html"
+        } else {
+            "svg"
+        }
+    });
 
-    let size_kb = svg_bytes.len() / 1024;
+    // Render to appropriate format
+    let output_bytes = if format == "html" {
+        if !quiet {
+            println!("🎨 Rendering interactive HTML...");
+        }
+        viz.render_html()?.into_bytes()
+    } else {
+        if !quiet {
+            println!("🎨 Rendering SVG...");
+        }
+        viz.render_svg()?.into_bytes()
+    };
+
+    let size_kb = output_bytes.len() / 1024;
     if !quiet {
         println!("💾 Writing to: {} ({} KB)", args.output.display(), size_kb);
     }
-    fs::write(&args.output, svg_bytes)?;
+    fs::write(&args.output, &output_bytes)?;
 
     // Warn about very large SVG files (always show)
-    if size_kb > 5000 {
+    if format == "svg" && size_kb > 5000 {
         eprintln!("⚠️  Large SVG warning: {} KB generated", size_kb);
         eprintln!("   This may be slow to open in browsers or editors.");
         eprintln!("   Consider using a dedicated SVG viewer for best performance.");

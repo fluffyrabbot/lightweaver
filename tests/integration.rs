@@ -150,3 +150,51 @@ fn test_filter_empty_result_error() {
     assert!(err_msg.contains("after applying filters"));
     assert!(err_msg.contains("too restrictive"));
 }
+
+#[test]
+fn test_library_api_html_rendering() {
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Should render to HTML
+    let html = viz.render_html().unwrap();
+
+    // Verify HTML structure
+    assert!(html.contains("<!DOCTYPE html>"));
+    assert!(html.contains("<svg"));
+    assert!(html.contains("svg-pan-zoom"));
+    assert!(html.contains("const nodes = ["));
+    assert!(html.contains("</html>"));
+
+    // Should contain node data
+    assert!(html.contains("\"type\""));
+    assert!(html.contains("\"tool\""));
+}
+
+#[test]
+fn test_library_api_html_with_dark_theme() {
+    let mut viz = PipelineVisualizer::new()
+        .with_theme("dark");
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    let html = viz.render_html().unwrap();
+
+    // Should have dark theme class
+    assert!(html.contains(r#"class="dark""#) || html.contains("body.dark"));
+}
+
+#[test]
+fn test_library_api_html_with_filters() {
+    use lightweaver::{GraphFilter, ToolType};
+
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+    viz.set_filter(filter);
+
+    // Should render HTML with filtered nodes
+    let html = viz.render_html().unwrap();
+    assert!(html.contains("<!DOCTYPE html>"));
+    assert!(html.contains("const nodes = ["));
+}
