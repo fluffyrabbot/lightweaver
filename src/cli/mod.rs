@@ -1,5 +1,6 @@
 // Hand-rolled CLI argument parsing
 
+use lightweaver::config::Config;
 use std::env;
 use std::path::PathBuf;
 
@@ -37,6 +38,59 @@ impl Default for GenerateArgs {
             filter_tags: Vec::new(),
             filter_namespaces: Vec::new(),
             format: None,
+        }
+    }
+}
+
+impl GenerateArgs {
+    /// Apply config file settings to these args
+    /// CLI arguments take precedence over config file values
+    pub fn apply_config(&mut self, config: &Config) {
+        // Apply output if not explicitly set via CLI (only if still default)
+        if self.output == PathBuf::from("pipeline.svg") {
+            if let Some(output) = &config.output {
+                self.output = output.clone();
+            }
+        }
+
+        // Apply format if not set
+        if self.format.is_none() {
+            self.format = config.format.clone();
+        }
+
+        // Apply theme if still default
+        if self.theme == "light" {
+            if let Some(theme) = &config.theme {
+                self.theme = theme.clone();
+            }
+        }
+
+        // Apply quiet if not explicitly set
+        if !self.quiet {
+            if let Some(quiet) = config.quiet {
+                self.quiet = quiet;
+            }
+        }
+
+        // Apply filter settings if not set via CLI
+        if let Some(filter) = &config.filter {
+            if self.filter_tools.is_empty() {
+                if let Some(tools) = &filter.tools {
+                    self.filter_tools = tools.clone();
+                }
+            }
+
+            if self.filter_tags.is_empty() {
+                if let Some(tags) = &filter.tags {
+                    self.filter_tags = tags.clone();
+                }
+            }
+
+            if self.filter_namespaces.is_empty() {
+                if let Some(namespaces) = &filter.namespaces {
+                    self.filter_namespaces = namespaces.clone();
+                }
+            }
         }
     }
 }

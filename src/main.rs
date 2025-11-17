@@ -3,7 +3,7 @@
 mod cli;
 
 use cli::{parse_args, print_help, Command};
-use lightweaver::PipelineVisualizer;
+use lightweaver::{Config, PipelineVisualizer};
 use std::fs;
 use std::process;
 use std::time::Instant;
@@ -20,7 +20,24 @@ fn main() {
     };
 
     match args.command {
-        Command::Generate(gen_args) => {
+        Command::Generate(mut gen_args) => {
+            // Try to load config file and apply it
+            match Config::load_from_current_dir() {
+                Ok(Some(config)) => {
+                    if !gen_args.quiet {
+                        println!("📋 Loaded config from .lightweaver.toml");
+                    }
+                    gen_args.apply_config(&config);
+                }
+                Ok(None) => {
+                    // No config file found - that's fine
+                }
+                Err(e) => {
+                    eprintln!("Error loading config file: {}", e);
+                    process::exit(1);
+                }
+            }
+
             if let Err(e) = generate(gen_args) {
                 eprintln!("Error: {}", e);
                 process::exit(1);

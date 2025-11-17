@@ -92,6 +92,43 @@ lightweaver generate --openlineage events.json --output pipeline.html
 - 🌓 **Dark Mode Toggle** - Switch themes on the fly
 - 📱 **Responsive** - Works on desktop and mobile
 
+### Configuration File
+
+Create a `.lightweaver.toml` file in your project root to set default options:
+
+```toml
+# Output settings
+output = "lineage.svg"
+format = "html"  # svg, html, png, or pdf
+theme = "dark"   # light or dark
+quiet = true     # Suppress progress messages
+
+# Default filters
+[filter]
+tools = ["dbt", "airflow"]        # Only show these tools
+tags = ["production", "core"]      # Must have ALL these tags (AND logic)
+namespaces = ["postgres://prod"]   # Match any of these prefixes (OR logic)
+```
+
+**Config file behavior:**
+- Searches up directory tree from current location for `.lightweaver.toml`
+- Command-line arguments override config file settings
+- Validates all settings on load (fails fast on invalid config)
+- All fields are optional - only specify what you want to override
+
+**Example workflow:**
+```bash
+# Project setup - create config once
+echo 'theme = "dark"' > .lightweaver.toml
+echo 'format = "html"' >> .lightweaver.toml
+
+# Now you can omit these flags every time
+lightweaver generate --openlineage events.json --output viz.html
+
+# CLI args still override config when needed
+lightweaver generate --openlineage events.json --theme light --output viz.svg
+```
+
 ## Library Usage
 
 ### Simple example
@@ -363,8 +400,8 @@ PRs welcome!
 - [x] Library API
 - [x] Graph filtering (by tool, tag, namespace)
 - [x] HTML output with interactivity
-- [ ] PNG/PDF export
-- [ ] Configuration file support
+- [x] PNG/PDF export
+- [x] Configuration file support
 - [ ] Plugin system for custom parsers
 
 Built with ❤️ and [Claude Code](https://claude.com/claude-code)

@@ -363,3 +363,90 @@ fn test_library_api_pdf_with_filters() {
     assert!(pdf_bytes.len() > 1024);
     assert_eq!(&pdf_bytes[0..4], b"%PDF");
 }
+
+#[test]
+fn test_config_loading_and_validation() {
+    use lightweaver::Config;
+    use std::fs;
+
+    // Create a valid config file
+    let config_path = "test_valid_config.toml";
+    let config_content = r#"
+        output = "custom_output.svg"
+        format = "html"
+        theme = "dark"
+        quiet = true
+
+        [filter]
+        tools = ["dbt", "airflow"]
+        tags = ["production"]
+        namespaces = ["postgres://prod"]
+    "#;
+
+    fs::write(config_path, config_content).unwrap();
+
+    // Should load successfully
+    let config = Config::from_file(config_path).unwrap();
+    assert_eq!(config.theme, Some("dark".to_string()));
+    assert_eq!(config.format, Some("html".to_string()));
+    assert_eq!(config.quiet, Some(true));
+
+    // Check filter settings
+    let filter = config.filter.unwrap();
+    assert_eq!(filter.tools.unwrap().len(), 2);
+    assert_eq!(filter.tags.unwrap(), vec!["production"]);
+
+    // Cleanup
+    fs::remove_file(config_path).ok();
+}
+
+#[test]
+fn test_config_invalid_theme() {
+    use lightweaver::Config;
+    use std::fs;
+
+    let config_path = "test_invalid_theme.toml";
+    let config_content = r#"theme = "invalid_theme""#;
+    fs::write(config_path, config_content).unwrap();
+
+    // Should fail validation
+    let result = Config::from_file(config_path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid theme"));
+
+    fs::remove_file(config_path).ok();
+}
+
+#[test]
+fn test_config_invalid_format() {
+    use lightweaver::Config;
+    use std::fs;
+
+    let config_path = "test_invalid_format.toml";
+    let config_content = r#"format = "docx""#;
+    fs::write(config_path, config_content).unwrap();
+
+    let result = Config::from_file(config_path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Invalid format"));
+
+    fs::remove_file(config_path).ok();
+}
+
+#[test]
+fn test_config_too_many_filters() {
+    use lightweaver::Config;
+    use std::fs;
+
+    let config_path = "test_too_many_filters.toml";
+    // Create a config with 51 tools (over the limit of 50)
+    let tools: Vec<String> = (0..51).map(|i| format!("\"tool{}\"", i)).collect();
+    let config_content = format!("[filter]\ntools = [{}]", tools.join(", "));
+    fs::write(config_path, &config_content).unwrap();
+
+    let result = Config::from_file(config_path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Too many tools"));
+
+    fs::remove_file(config_path).ok();
+}

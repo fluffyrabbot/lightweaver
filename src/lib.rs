@@ -47,6 +47,7 @@
 //! ```
 
 // Core modules
+pub mod config;
 pub mod graph;
 pub mod layout;
 pub mod lineage;
@@ -55,6 +56,7 @@ pub mod parsers;
 pub mod render;
 
 // Re-exports for convenience
+pub use config::{Config, FilterConfig};
 pub use graph::{Edge, EdgeKind, GraphFilter, Node, NodeId, NodeKind, PipelineGraph, ToolType};
 pub use layout::{hierarchical::HierarchicalLayout, Layout, LayoutError};
 pub use parsers::ParseError;
