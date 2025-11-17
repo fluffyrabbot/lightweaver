@@ -1,6 +1,6 @@
 // SVG renderer for pipeline graphs
 
-use crate::graph::{NodeKind, PipelineGraph};
+use crate::graph::{NodeKind, PipelineGraph, ToolType};
 use crate::layout::{LayoutResult, Position};
 use crate::render::Theme;
 
@@ -213,6 +213,36 @@ impl SvgRenderer {
 
     fn get_node_badge(&self, kind: &NodeKind) -> &str {
         match kind {
+            NodeKind::Job { tool, facets, .. } => {
+                match tool {
+                    ToolType::Dbt => {
+                        // Extract materialization from dbt facet
+                        if let Some(dbt_facet) = facets.get("dbt") {
+                            if let Some(mat) = dbt_facet.get("materialization") {
+                                if let Some(mat_str) = mat.as_str() {
+                                    return match mat_str {
+                                        "table" => "TABLE",
+                                        "view" => "VIEW",
+                                        "incremental" => "INCREMENTAL",
+                                        "ephemeral" => "EPHEMERAL",
+                                        _ => "MODEL",
+                                    };
+                                }
+                            }
+                        }
+                        "MODEL"
+                    }
+                    ToolType::Airflow => "TASK",
+                    ToolType::Spark => "JOB",
+                    ToolType::Fivetran => "SYNC",
+                    ToolType::Dagster => "ASSET",
+                    ToolType::Prefect => "FLOW",
+                    _ => "JOB",
+                }
+            }
+            NodeKind::Dataset { .. } => "DATASET",
+
+            // Legacy support
             NodeKind::DbtModel { materialization, .. } => match materialization.as_str() {
                 "table" => "TABLE",
                 "view" => "VIEW",
@@ -221,13 +251,36 @@ impl SvgRenderer {
                 _ => "MODEL",
             },
             NodeKind::DbtSource { .. } => "SOURCE",
-            NodeKind::AirflowTask { .. } => "TASK",
-            NodeKind::Table { .. } => "TABLE",
         }
     }
 
     fn get_node_color(&self, kind: &NodeKind) -> &str {
         match kind {
+            NodeKind::Job { tool, facets, .. } => {
+                match tool {
+                    ToolType::Dbt => {
+                        // Extract materialization from dbt facet for color selection
+                        if let Some(dbt_facet) = facets.get("dbt") {
+                            if let Some(mat) = dbt_facet.get("materialization") {
+                                if let Some(mat_str) = mat.as_str() {
+                                    return match mat_str {
+                                        "table" => &self.theme.node_fill.dbt_model_table,
+                                        "view" => &self.theme.node_fill.dbt_model_view,
+                                        "incremental" => &self.theme.node_fill.dbt_model_incremental,
+                                        _ => &self.theme.node_fill.dbt_model_view,
+                                    };
+                                }
+                            }
+                        }
+                        &self.theme.node_fill.dbt_model_view
+                    }
+                    ToolType::Airflow => &self.theme.node_fill.airflow_task,
+                    _ => tool.color(),  // Use ToolType's color for other tools
+                }
+            }
+            NodeKind::Dataset { .. } => &self.theme.node_fill.dbt_source,
+
+            // Legacy support
             NodeKind::DbtModel { materialization, .. } => match materialization.as_str() {
                 "table" => &self.theme.node_fill.dbt_model_table,
                 "view" => &self.theme.node_fill.dbt_model_view,
@@ -235,8 +288,6 @@ impl SvgRenderer {
                 _ => &self.theme.node_fill.dbt_model_view,
             },
             NodeKind::DbtSource { .. } => &self.theme.node_fill.dbt_source,
-            NodeKind::AirflowTask { .. } => &self.theme.node_fill.airflow_task,
-            NodeKind::Table { .. } => &self.theme.node_fill.table,
         }
     }
 }

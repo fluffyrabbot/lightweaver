@@ -2,6 +2,7 @@
 
 mod graph;
 mod layout;
+mod openlineage;
 mod parsers;
 mod render;
 mod cli;
