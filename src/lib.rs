@@ -211,18 +211,30 @@ impl PipelineVisualizer {
 
         // Check for empty graph
         if graph.node_count() == 0 {
-            return Err(
-                "No pipeline nodes found to visualize.\n\n\
-                 Possible reasons:\n\
-                 • Your input files were parsed but contained no valid pipeline nodes\n\
-                 • dbt manifest has no models/seeds/snapshots (tests are filtered out)\n\
-                 • OpenLineage events file was empty or had no job/dataset information\n\n\
-                 Troubleshooting:\n\
-                 • Check that your input files are not empty\n\
-                 • Verify the file format matches the expected schema\n\
-                 • For dbt: ensure manifest.json contains models\n\
-                 • For OpenLineage: ensure events have 'job' and 'inputs'/'outputs' fields".into()
-            );
+            // Provide filter-aware error message
+            if self.filter.is_some() {
+                return Err(
+                    "No pipeline nodes found to visualize after applying filters.\n\n\
+                     Your filters may be too restrictive. Try:\n\
+                     • Removing or relaxing some filters\n\
+                     • Checking filter values for typos\n\
+                     • Using viz.clear_filter() to see the unfiltered graph\n\n\
+                     Example: If filtering by tag, ensure your nodes have those tags set.".into()
+                );
+            } else {
+                return Err(
+                    "No pipeline nodes found to visualize.\n\n\
+                     Possible reasons:\n\
+                     • Your input files were parsed but contained no valid pipeline nodes\n\
+                     • dbt manifest has no models/seeds/snapshots (tests are filtered out)\n\
+                     • OpenLineage events file was empty or had no job/dataset information\n\n\
+                     Troubleshooting:\n\
+                     • Check that your input files are not empty\n\
+                     • Verify the file format matches the expected schema\n\
+                     • For dbt: ensure manifest.json contains models\n\
+                     • For OpenLineage: ensure events have 'job' and 'inputs'/'outputs' fields".into()
+                );
+            }
         }
 
         // Compute layout

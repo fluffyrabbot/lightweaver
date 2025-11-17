@@ -132,13 +132,18 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Get final stats
+    // Get final stats (after filtering if filters were applied)
     let stats = viz.stats()?;
 
     // Show merge info if multiple sources
     if !quiet && stats.source_count > 1 {
         println!("🔗 Merging {} sources...", stats.source_count);
         println!("   Merged graph: {} nodes, {} edges", stats.total_nodes, stats.total_edges);
+    }
+
+    // Show filtering results if filters were applied
+    if !quiet && (!args.filter_tools.is_empty() || !args.filter_tags.is_empty() || !args.filter_namespaces.is_empty()) {
+        println!("✂️  After filtering: {} nodes, {} edges", stats.total_nodes, stats.total_edges);
     }
 
     // Warn about large graphs (always show, even in quiet mode)

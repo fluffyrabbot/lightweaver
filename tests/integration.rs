@@ -129,3 +129,24 @@ fn test_library_api_combined_filters() {
     assert!(combined_stats.total_nodes > 0);
     assert!(combined_stats.total_nodes <= stats.total_nodes);
 }
+
+#[test]
+fn test_filter_empty_result_error() {
+    use lightweaver::{GraphFilter, ToolType};
+
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Apply filter that matches nothing
+    let impossible_filter = GraphFilter::new()
+        .with_tool(ToolType::Kafka)  // No Kafka nodes in test data
+        .with_tag("nonexistent");
+    viz.set_filter(impossible_filter);
+
+    // Should error with filter-specific message
+    let result = viz.render_svg();
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("after applying filters"));
+    assert!(err_msg.contains("too restrictive"));
+}
