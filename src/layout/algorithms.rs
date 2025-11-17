@@ -156,10 +156,16 @@ fn dfs_cycle(
                 }
             } else if rec_stack.contains(neighbor) {
                 // Found cycle - extract it from path
-                let cycle_start = path.iter().position(|n| n == neighbor).unwrap();
-                let cycle = path[cycle_start..].to_vec();
-                cycles.push(cycle);
-                return true;
+                if let Some(cycle_start) = path.iter().position(|n| n == neighbor) {
+                    let cycle = path[cycle_start..].to_vec();
+                    cycles.push(cycle);
+                    return true;
+                } else {
+                    // Invariant violation: node in rec_stack but not in path
+                    // This shouldn't happen, but handle gracefully
+                    eprintln!("Warning: Cycle detection invariant violation - node in recursion stack but not in path");
+                    return true; // Treat as cycle to be safe
+                }
             }
         }
     }

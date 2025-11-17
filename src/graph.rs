@@ -294,7 +294,13 @@ impl GraphFilter {
                         return false;
                     }
                 }
-                // Datasets always pass tool filter (they're connected to jobs)
+                // Legacy DbtModel nodes should be treated as Dbt tool
+                NodeKind::DbtModel { .. } => {
+                    if !self.tools.contains(&ToolType::Dbt) {
+                        return false;
+                    }
+                }
+                // Datasets and DbtSource always pass tool filter
                 _ => {}
             }
         }
@@ -311,7 +317,9 @@ impl GraphFilter {
             let namespace = match &node.kind {
                 NodeKind::Job { namespace, .. } => namespace,
                 NodeKind::Dataset { namespace, .. } => namespace,
-                _ => return false,
+                // Legacy node types don't have namespace - pass them through
+                // (consistent with tool filter behavior)
+                _ => return true,
             };
 
             if !self.namespaces.iter().any(|prefix| namespace.starts_with(prefix)) {

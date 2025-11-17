@@ -181,11 +181,17 @@ fn detect_tool_type(namespace: &str) -> ToolType {
 /// e.g., "models.staging.stg_customers" -> "stg_customers"
 /// e.g., "public.dim_customers" -> "dim_customers"
 fn extract_display_name(full_name: &str) -> String {
-    full_name
+    let extracted = full_name
         .split('.')
         .next_back()
-        .unwrap_or(full_name)
-        .to_string()
+        .unwrap_or(full_name);
+
+    // If extraction produced empty string or only dots, return original
+    if extracted.is_empty() || extracted.chars().all(|c| c == '.') {
+        full_name.to_string()
+    } else {
+        extracted.to_string()
+    }
 }
 
 /// Extract description from facets

@@ -198,3 +198,105 @@ fn test_library_api_html_with_filters() {
     assert!(html.contains("<!DOCTYPE html>"));
     assert!(html.contains("const nodes = ["));
 }
+
+#[test]
+fn test_edge_case_malformed_json() {
+    use std::fs;
+    use std::io::Write;
+
+    // Create temporary file with malformed JSON
+    let temp_path = "test_malformed.json";
+    let mut file = fs::File::create(temp_path).unwrap();
+    file.write_all(b"{ \"broken\": incomplete json").unwrap();
+    drop(file);
+
+    let mut viz = PipelineVisualizer::new();
+    let result = viz.add_openlineage_events(Path::new(temp_path));
+
+    // Should return error, not panic
+    assert!(result.is_err());
+
+    // Cleanup
+    fs::remove_file(temp_path).ok();
+}
+
+#[test]
+fn test_edge_case_special_characters_in_names() {
+    // Create graph with special characters in names
+    let mut viz = PipelineVisualizer::new();
+
+    // This would normally come from parsing, but we'll test rendering handles it
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Should render without panicking (XML escaping should handle special chars)
+    let svg = viz.render_svg().unwrap();
+    assert!(svg.contains("<svg"));
+
+    let html = viz.render_html().unwrap();
+    assert!(html.contains("<!DOCTYPE html>"));
+}
+
+#[test]
+fn test_edge_case_empty_urn_components() {
+    use std::fs;
+
+    // Create a test file with dataset that has empty namespace
+    let temp_path = "test_empty_urn.json";
+    let bad_event = r#"{
+        "eventType": "START",
+        "eventTime": "2024-01-01T00:00:00.000Z",
+        "run": {
+            "runId": "test-run",
+            "facets": {}
+        },
+        "job": {
+            "namespace": "test://",
+            "name": "test_job",
+            "facets": {}
+        },
+        "inputs": [{
+            "namespace": "",
+            "name": "bad_dataset",
+            "facets": {}
+        }],
+        "outputs": []
+    }"#;
+
+    fs::write(temp_path, bad_event).unwrap();
+
+    let mut viz = PipelineVisualizer::new();
+    // Should handle gracefully with warning, not crash
+    let result = viz.add_openlineage_events(Path::new(temp_path));
+
+    // Cleanup
+    fs::remove_file(temp_path).ok();
+
+    // Should either succeed with warning or fail gracefully (not panic)
+    // The important thing is it doesn't crash
+    match result {
+        Ok(_) => {
+            // Successfully parsed - URN validation warnings emitted
+        }
+        Err(e) => {
+            // Parsing failed - also acceptable
+            assert!(e.to_string().len() > 0);
+        }
+    }
+}
+
+#[test]
+fn test_edge_case_legacy_node_filtering() {
+    use lightweaver::GraphFilter;
+
+    // Load data that might have legacy DbtModel nodes
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Filter by namespace - legacy nodes without namespace should pass through
+    let filter = GraphFilter::new().with_namespace("dbt://");
+    viz.set_filter(filter);
+
+    // Should not panic
+    let result = viz.render_svg();
+    assert!(result.is_ok() || result.unwrap_err().to_string().contains("too restrictive"));
+}

@@ -26,8 +26,16 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
 
             // If it's a dataset, register its URN (keep LAST occurrence for deduplication)
             if let NodeKind::Dataset { namespace, name, .. } = &node.kind {
-                let urn = format!("{}:{}", namespace, name);
-                dataset_urn_to_id.insert(urn, unique_id.clone());
+                // Validate URN components are non-empty
+                if !namespace.is_empty() && !name.is_empty() {
+                    let urn = format!("{}:{}", namespace, name);
+                    dataset_urn_to_id.insert(urn, unique_id.clone());
+                } else {
+                    eprintln!(
+                        "Warning: Skipping dataset with empty URN component: namespace='{}', name='{}'",
+                        namespace, name
+                    );
+                }
             }
         }
     }
@@ -79,6 +87,10 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
                 let dataset_id = &edge.to;
                 if let Some(dataset_node) = merged.nodes.get(dataset_id) {
                     if let NodeKind::Dataset { namespace, name, .. } = &dataset_node.kind {
+                        // Skip datasets with empty URN components
+                        if namespace.is_empty() || name.is_empty() {
+                            continue;
+                        }
                         let urn = format!("{}:{}", namespace, name);
 
                         // Find other datasets with same URN (different node_id)
@@ -87,6 +99,10 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
                                 continue;
                             }
                             if let NodeKind::Dataset { namespace: ns2, name: name2, .. } = &other_node.kind {
+                                // Skip datasets with empty URN components
+                                if ns2.is_empty() || name2.is_empty() {
+                                    continue;
+                                }
                                 let other_urn = format!("{}:{}", ns2, name2);
                                 if urn == other_urn {
                                     // Found matching dataset! Connect all readers of other_id to this one
@@ -140,6 +156,14 @@ pub fn deduplicate_datasets(graph: &mut PipelineGraph) {
     // Find canonical dataset for each URN
     for (node_id, node) in &graph.nodes {
         if let NodeKind::Dataset { namespace, name, .. } = &node.kind {
+            // Skip datasets with empty URN components
+            if namespace.is_empty() || name.is_empty() {
+                eprintln!(
+                    "Warning: Skipping deduplication for dataset with empty URN component: namespace='{}', name='{}'",
+                    namespace, name
+                );
+                continue;
+            }
             let urn = format!("{}:{}", namespace, name);
 
             if let Some(canonical_id) = urn_to_canonical.get(&urn) {
