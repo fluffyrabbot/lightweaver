@@ -215,11 +215,10 @@ impl Job {
     }
 
     pub fn with_sql(mut self, query: impl Into<String>) -> Self {
-        let facet = SqlJobFacet {
-            query: query.into(),
-        };
-        self.facets
-            .insert("sql".to_string(), serde_json::to_value(facet).unwrap());
+        self.facets.insert(
+            "sql".to_string(),
+            serde_json::json!({ "query": query.into() }),
+        );
         self
     }
 
@@ -228,13 +227,14 @@ impl Job {
         materialization: impl Into<String>,
         tags: Vec<String>,
     ) -> Self {
-        let facet = DbtJobFacet {
-            materialization: materialization.into(),
-            tags: Some(tags),
-            meta: None,
-        };
-        self.facets
-            .insert("dbt".to_string(), serde_json::to_value(facet).unwrap());
+        self.facets.insert(
+            "dbt".to_string(),
+            serde_json::json!({
+                "materialization": materialization.into(),
+                "tags": tags,
+                "meta": serde_json::Value::Null
+            }),
+        );
         self
     }
 
@@ -244,15 +244,14 @@ impl Job {
         task_id: impl Into<String>,
         operator: impl Into<String>,
     ) -> Self {
-        let facet = AirflowJobFacet {
-            dag_id: dag_id.into(),
-            task_id: task_id.into(),
-            operator: operator.into(),
-            pool: None,
-        };
         self.facets.insert(
             "airflow".to_string(),
-            serde_json::to_value(facet).unwrap(),
+            serde_json::json!({
+                "dag_id": dag_id.into(),
+                "task_id": task_id.into(),
+                "operator": operator.into(),
+                "pool": serde_json::Value::Null
+            }),
         );
         self
     }
@@ -273,22 +272,20 @@ impl Dataset {
     }
 
     pub fn with_schema(mut self, fields: Vec<SchemaField>) -> Self {
-        let facet = SchemaDatasetFacet { fields };
         self.facets.insert(
             "schema".to_string(),
-            serde_json::to_value(facet).unwrap(),
+            serde_json::json!({ "fields": fields }),
         );
         self
     }
 
     pub fn with_data_source(mut self, name: impl Into<String>, uri: impl Into<String>) -> Self {
-        let facet = DataSourceDatasetFacet {
-            name: name.into(),
-            uri: uri.into(),
-        };
         self.facets.insert(
             "dataSource".to_string(),
-            serde_json::to_value(facet).unwrap(),
+            serde_json::json!({
+                "name": name.into(),
+                "uri": uri.into()
+            }),
         );
         self
     }

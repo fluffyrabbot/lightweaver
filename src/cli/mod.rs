@@ -70,6 +70,9 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("Missing file path after --dbt flag.\nUsage: --dbt <path-to-manifest.json>".to_string());
                 }
+                if gen_args.dbt_manifest.is_some() {
+                    return Err("--dbt can only be specified once. Use --openlineage for additional data sources.".to_string());
+                }
                 let path = PathBuf::from(&args[i + 1]);
                 if !path.exists() {
                     return Err(format!("dbt manifest file not found: {}\nPlease check the path and try again.", path.display()));
@@ -98,7 +101,19 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("--output requires a value".to_string());
                 }
-                gen_args.output = PathBuf::from(&args[i + 1]);
+                let output_path = PathBuf::from(&args[i + 1]);
+
+                // Validate parent directory exists
+                if let Some(parent) = output_path.parent() {
+                    if !parent.as_os_str().is_empty() && !parent.exists() {
+                        return Err(format!(
+                            "Output directory does not exist: {}\nPlease create the directory first or choose a different location.",
+                            parent.display()
+                        ));
+                    }
+                }
+
+                gen_args.output = output_path;
                 i += 2;
             }
             "--theme" => {
@@ -120,6 +135,9 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("--filter-tool requires a value (e.g., dbt, airflow, spark)".to_string());
                 }
+                if gen_args.filter_tools.len() >= 50 {
+                    return Err("Too many --filter-tool flags (maximum 50)".to_string());
+                }
                 gen_args.filter_tools.push(args[i + 1].clone());
                 i += 2;
             }
@@ -127,12 +145,18 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("--filter-tag requires a value (e.g., production, core)".to_string());
                 }
+                if gen_args.filter_tags.len() >= 50 {
+                    return Err("Too many --filter-tag flags (maximum 50)".to_string());
+                }
                 gen_args.filter_tags.push(args[i + 1].clone());
                 i += 2;
             }
             "--filter-namespace" => {
                 if i + 1 >= args.len() {
                     return Err("--filter-namespace requires a value (e.g., postgres://prod)".to_string());
+                }
+                if gen_args.filter_namespaces.len() >= 50 {
+                    return Err("Too many --filter-namespace flags (maximum 50)".to_string());
                 }
                 gen_args.filter_namespaces.push(args[i + 1].clone());
                 i += 2;
