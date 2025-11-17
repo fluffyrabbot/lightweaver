@@ -1,0 +1,108 @@
+<svg width="1260" height="680" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="edges">
+    <line x1="380" y1="190" x2="630" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="390" x2="630" y2="390" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="190" x2="630" y2="390" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="880" y1="240" x2="1130" y2="290" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="290" x2="880" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="630" y1="90" x2="880" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="630" y1="390" x2="880" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="190" x2="880" y2="340" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="630" y1="490" x2="880" y2="340" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="130" y1="290" x2="630" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="190" x2="630" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="190" x2="630" y2="290" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="390" x2="630" y2="490" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="130" y1="390" x2="380" y2="290" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="130" y1="190" x2="380" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="130" y1="490" x2="380" y2="390" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  </g>
+  <g id="nodes">
+    <rect x="552" y="452" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="450" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="466" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">EPHEMERAL</text>
+    <text x="630" y="494" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">order_payments</text>
+    <rect x="302" y="352" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="300" y="350" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="380" y="366" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="380" y="394" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_payments</text>
+    <text x="380" y="418" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging, hourly</text>
+    <rect x="802" y="302" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="800" y="300" width="160" height="80" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="880" y="316" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="880" y="344" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">fct_orders</text>
+    <rect x="52" y="152" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="150" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="166" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">MODEL</text>
+    <text x="130" y="194" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">raw_orders</text>
+    <rect x="52" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">SOURCE</text>
+    <text x="130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">tagged_source</text>
+    <text x="130" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">important</text>
+    <rect x="302" y="252" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="300" y="250" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="380" y="266" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="380" y="294" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_customers</text>
+    <text x="380" y="318" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging, hourly</text>
+    <rect x="552" y="252" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="250" width="160" height="80" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="266" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="630" y="294" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">holiday_orders</text>
+    <rect x="552" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="50" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">EPHEMERAL</text>
+    <text x="630" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">customer_orders</text>
+    <rect x="52" y="452" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="450" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="466" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">MODEL</text>
+    <text x="130" y="494" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">raw_payments</text>
+    <rect x="52" y="252" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="250" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="266" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">SOURCE</text>
+    <text x="130" y="294" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">orders</text>
+    <rect x="302" y="152" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="300" y="150" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="380" y="166" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="380" y="194" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_orders</text>
+    <text x="380" y="218" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging, hourly</text>
+    <rect x="52" y="352" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="350" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="366" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">MODEL</text>
+    <text x="130" y="394" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">raw_customers</text>
+    <rect x="552" y="352" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="350" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="366" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">EPHEMERAL</text>
+    <text x="630" y="394" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">customer_payments</text>
+    <rect x="552" y="152" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="150" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="166" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="630" y="194" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">hidden_model</text>
+    <text x="630" y="218" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging, hourly</text>
+    <rect x="802" y="202" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="800" y="200" width="160" height="80" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="880" y="216" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="880" y="244" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+    <rect x="1052" y="252" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1050" y="250" width="160" height="80" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="1130" y="266" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="1130" y="294" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+  </g>
+  <g id="legend">
+    <text x="1060" y="20" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="bold" fill="#111827">Legend</text>
+    <rect x="1060" y="40" width="16" height="16" rx="3" fill="#3b82f6"/>
+    <text x="1082" y="52" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Table</text>
+    <rect x="1060" y="65" width="16" height="16" rx="3" fill="#10b981"/>
+    <text x="1082" y="77" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">View</text>
+    <rect x="1060" y="90" width="16" height="16" rx="3" fill="#8b5cf6"/>
+    <text x="1082" y="102" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Incremental</text>
+    <rect x="1060" y="115" width="16" height="16" rx="3" fill="#f59e0b"/>
+    <text x="1082" y="127" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Source</text>
+  </g>
+</svg>

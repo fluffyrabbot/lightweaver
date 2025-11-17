@@ -23,10 +23,10 @@ impl Default for HierarchicalLayout {
     fn default() -> Self {
         Self {
             direction: Direction::LeftToRight,
-            layer_spacing: 200.0,
-            node_spacing: 80.0,
-            node_width: 120.0,
-            node_height: 60.0,
+            layer_spacing: 250.0,  // More horizontal space between layers
+            node_spacing: 100.0,   // More vertical space between nodes
+            node_width: 160.0,     // Wider nodes for longer names
+            node_height: 80.0,     // Taller nodes for badges
         }
     }
 }
@@ -41,30 +41,37 @@ impl Layout for HierarchicalLayout {
         let layers =
             topological_layers(graph).map_err(|cycle_nodes| LayoutError::CycleDetected(cycle_nodes))?;
 
-        // Assign positions
+        // Find max nodes in any layer for centering
+        let max_nodes_in_layer = layers.iter().map(|l| l.len()).max().unwrap_or(1);
+        let total_height = max_nodes_in_layer as f64 * self.node_spacing;
+
+        // Assign positions with vertical centering
         let mut positions = HashMap::new();
         let mut max_width: f64 = 0.0;
-        let mut max_height: f64 = 0.0;
+        let padding = 50.0;
 
         for (layer_idx, layer) in layers.iter().enumerate() {
-            let layer_pos = layer_idx as f64 * self.layer_spacing;
+            let layer_x = padding + (layer_idx as f64 * self.layer_spacing);
+
+            // Calculate vertical offset to center this layer
+            let layer_height = layer.len() as f64 * self.node_spacing;
+            let vertical_offset = (total_height - layer_height) / 2.0 + padding;
 
             for (node_idx, node_id) in layer.iter().enumerate() {
-                let node_pos = node_idx as f64 * self.node_spacing;
+                let node_y = vertical_offset + (node_idx as f64 * self.node_spacing);
 
                 let pos = match self.direction {
                     Direction::LeftToRight => Position {
-                        x: layer_pos,
-                        y: node_pos,
+                        x: layer_x,
+                        y: node_y,
                     },
                     Direction::TopToBottom => Position {
-                        x: node_pos,
-                        y: layer_pos,
+                        x: node_y,
+                        y: layer_x,
                     },
                 };
 
                 max_width = max_width.max(pos.x + self.node_width);
-                max_height = max_height.max(pos.y + self.node_height);
 
                 positions.insert(node_id.clone(), pos);
             }
@@ -72,8 +79,8 @@ impl Layout for HierarchicalLayout {
 
         Ok(LayoutResult {
             positions,
-            width: max_width + 50.0,  // Add padding
-            height: max_height + 50.0,
+            width: max_width + padding,
+            height: total_height + self.node_height + (2.0 * padding),
         })
     }
 }
