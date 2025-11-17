@@ -23,6 +23,15 @@ pub fn topological_layers(graph: &PipelineGraph) -> Result<Vec<Vec<NodeId>>, Vec
     // Count in-degrees and build adjacency list
     // Skip edges that reference nodes not in the graph (e.g., tests, other filtered nodes)
     for edge in &graph.edges {
+        // Warn if edge references non-existent nodes (helps catch data quality issues)
+        let from_exists = in_degree.contains_key(&edge.from);
+        let to_exists = in_degree.contains_key(&edge.to);
+
+        if !from_exists || !to_exists {
+            eprintln!("⚠️  Warning: Edge references non-existent node(s): {} -> {} (from_exists: {}, to_exists: {})",
+                      edge.from, edge.to, from_exists, to_exists);
+        }
+
         if let Some(to_degree) = in_degree.get_mut(&edge.to) {
             *to_degree += 1;
         }
@@ -54,10 +63,12 @@ pub fn topological_layers(graph: &PipelineGraph) -> Result<Vec<Vec<NodeId>>, Vec
         for node_id in &layer {
             if let Some(neighbors) = out_edges.get(node_id) {
                 for neighbor in neighbors {
-                    let degree = in_degree.get_mut(neighbor).unwrap();
-                    *degree -= 1;
-                    if *degree == 0 {
-                        next_layer.push(neighbor.clone());
+                    // Safe: only process edges where neighbor exists in the graph
+                    if let Some(degree) = in_degree.get_mut(neighbor) {
+                        *degree -= 1;
+                        if *degree == 0 {
+                            next_layer.push(neighbor.clone());
+                        }
                     }
                 }
             }
@@ -100,7 +111,10 @@ pub fn detect_cycles(graph: &PipelineGraph) -> Vec<Vec<NodeId>> {
         adj_list.insert(node_id.clone(), Vec::new());
     }
     for edge in &graph.edges {
-        adj_list.get_mut(&edge.from).unwrap().push(edge.to.clone());
+        // Only add edges where both nodes exist
+        if let Some(adj) = adj_list.get_mut(&edge.from) {
+            adj.push(edge.to.clone());
+        }
     }
 
     for node_id in graph.nodes.keys() {

@@ -39,7 +39,7 @@ impl Layout for HierarchicalLayout {
 
         // Get topological layers
         let layers =
-            topological_layers(graph).map_err(|cycle_nodes| LayoutError::CycleDetected(cycle_nodes))?;
+            topological_layers(graph).map_err(LayoutError::CycleDetected)?;
 
         // Find max nodes in any layer for centering
         let max_nodes_in_layer = layers.iter().map(|l| l.len()).max().unwrap_or(1);

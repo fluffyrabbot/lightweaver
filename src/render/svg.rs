@@ -101,7 +101,7 @@ impl SvgRenderer {
         }
 
         // Don't render legend if only one tool and no datasets
-        if tool_counts.len() == 0 && !has_datasets {
+        if tool_counts.is_empty() && !has_datasets {
             return String::new();
         }
 

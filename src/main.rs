@@ -62,7 +62,7 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Merge graphs if multiple sources
-    let mut graph = if graphs.len() > 1 {
+    let graph = if graphs.len() > 1 {
         println!("🔗 Merging {} sources...", graphs.len());
         let mut merged = lineage::merger::merge_graphs(graphs);
         lineage::merger::deduplicate_datasets(&mut merged);

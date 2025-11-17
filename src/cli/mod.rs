@@ -56,16 +56,30 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
         match args[i].as_str() {
             "--dbt" => {
                 if i + 1 >= args.len() {
-                    return Err("--dbt requires a value".to_string());
+                    return Err("Missing file path after --dbt flag.\nUsage: --dbt <path-to-manifest.json>".to_string());
                 }
-                gen_args.dbt_manifest = Some(PathBuf::from(&args[i + 1]));
+                let path = PathBuf::from(&args[i + 1]);
+                if !path.exists() {
+                    return Err(format!("dbt manifest file not found: {}\nPlease check the path and try again.", path.display()));
+                }
+                if !path.is_file() {
+                    return Err(format!("Path is not a file: {}\nPlease provide a path to a dbt manifest.json file.", path.display()));
+                }
+                gen_args.dbt_manifest = Some(path);
                 i += 2;
             }
             "--openlineage" => {
                 if i + 1 >= args.len() {
-                    return Err("--openlineage requires a value".to_string());
+                    return Err("Missing file path after --openlineage flag.\nUsage: --openlineage <path-to-events.json>".to_string());
                 }
-                gen_args.openlineage.push(PathBuf::from(&args[i + 1]));
+                let path = PathBuf::from(&args[i + 1]);
+                if !path.exists() {
+                    return Err(format!("OpenLineage events file not found: {}\nPlease check the path and try again.", path.display()));
+                }
+                if !path.is_file() {
+                    return Err(format!("Path is not a file: {}\nPlease provide a path to an OpenLineage events file.", path.display()));
+                }
+                gen_args.openlineage.push(path);
                 i += 2;
             }
             "--output" | "-o" => {
@@ -79,7 +93,11 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("--theme requires a value".to_string());
                 }
-                gen_args.theme = args[i + 1].clone();
+                let theme = &args[i + 1];
+                if !matches!(theme.as_str(), "light" | "dark") {
+                    return Err(format!("Invalid theme '{}'. Valid options: light, dark", theme));
+                }
+                gen_args.theme = theme.clone();
                 i += 2;
             }
             arg => return Err(format!("Unknown argument: {}", arg)),
@@ -87,7 +105,7 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
     }
 
     if gen_args.dbt_manifest.is_none() && gen_args.openlineage.is_empty() {
-        return Err("At least one input source (--dbt or --openlineage) is required".to_string());
+        return Err("No input files specified. Use --dbt <path> or --openlineage <path> to provide data.\nExample: lightweaver generate --dbt target/manifest.json --output pipeline.svg".to_string());
     }
 
     Ok(gen_args)
@@ -140,13 +158,13 @@ mod tests {
     fn test_parse_generate_args() {
         let args = vec![
             "--dbt".to_string(),
-            "manifest.json".to_string(),
+            "test_data/jaffle_manifest.json".to_string(),
             "--output".to_string(),
             "out.svg".to_string(),
         ];
 
         let result = parse_generate_args(&args).unwrap();
-        assert_eq!(result.dbt_manifest.unwrap(), PathBuf::from("manifest.json"));
+        assert_eq!(result.dbt_manifest.unwrap(), PathBuf::from("test_data/jaffle_manifest.json"));
         assert_eq!(result.output, PathBuf::from("out.svg"));
     }
 

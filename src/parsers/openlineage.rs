@@ -12,6 +12,16 @@ use std::path::Path;
 /// Parse OpenLineage events from a JSON file
 /// Supports both newline-delimited JSON (NDJSON) and JSON arrays
 pub fn parse_events(path: &Path) -> Result<PipelineGraph, ParseError> {
+    // Validate file size to prevent OOM (100MB limit)
+    const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024;
+    let metadata = fs::metadata(path)?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(ParseError::InvalidFormat(
+            format!("File too large: {} bytes (max: {} MB). Consider splitting your events file.",
+                    metadata.len(), MAX_FILE_SIZE / 1024 / 1024)
+        ));
+    }
+
     let content = fs::read_to_string(path)?;
 
     // Try to parse as JSON array first
@@ -173,7 +183,7 @@ fn detect_tool_type(namespace: &str) -> ToolType {
 fn extract_display_name(full_name: &str) -> String {
     full_name
         .split('.')
-        .last()
+        .next_back()
         .unwrap_or(full_name)
         .to_string()
 }

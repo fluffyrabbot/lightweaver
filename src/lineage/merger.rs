@@ -50,6 +50,12 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
     let mut new_edges = HashSet::new();
     let existing_edges: HashSet<_> = merged.edges.iter().collect();
 
+    // Build edge index for O(1) lookups (optimization: prevents O(n*m) nested loops)
+    let mut edges_by_source: HashMap<NodeId, Vec<&Edge>> = HashMap::new();
+    for edge in &merged.edges {
+        edges_by_source.entry(edge.from.clone()).or_default().push(edge);
+    }
+
     // For each Job node, check if its inputs/outputs match dataset URNs from other sources
     let jobs: Vec<_> = merged
         .nodes
@@ -84,12 +90,14 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
                                 let other_urn = format!("{}:{}", ns2, name2);
                                 if urn == other_urn {
                                     // Found matching dataset! Connect all readers of other_id to this one
-                                    let readers: Vec<_> = merged
-                                        .edges
-                                        .iter()
-                                        .filter(|e| e.from == *other_id && e.kind == EdgeKind::ReadsFrom)
-                                        .map(|e| e.to.clone())
-                                        .collect();
+                                    // Use edge index for O(1) lookup instead of O(n) filter
+                                    let readers: Vec<_> = edges_by_source
+                                        .get(other_id)
+                                        .map(|edges| edges.iter()
+                                            .filter(|e| e.kind == EdgeKind::ReadsFrom)
+                                            .map(|e| e.to.clone())
+                                            .collect())
+                                        .unwrap_or_default();
 
                                     for reader_job in readers {
                                         // Create cross-tool edge: job_id -> dataset_id <- reader_job

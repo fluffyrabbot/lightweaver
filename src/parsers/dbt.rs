@@ -7,6 +7,16 @@ use std::fs;
 use std::path::Path;
 
 pub fn parse_manifest(path: &Path) -> Result<PipelineGraph, ParseError> {
+    // Validate file size to prevent OOM (100MB limit)
+    const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024;
+    let metadata = fs::metadata(path)?;
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(ParseError::InvalidFormat(
+            format!("File too large: {} bytes (max: {} MB). Consider filtering your manifest or using a smaller project.",
+                    metadata.len(), MAX_FILE_SIZE / 1024 / 1024)
+        ));
+    }
+
     let content = fs::read_to_string(path)?;
     let manifest: Value = serde_json::from_str(&content)?;
 
@@ -110,14 +120,23 @@ pub fn parse_manifest(path: &Path) -> Result<PipelineGraph, ParseError> {
     // Parse dependencies
     if let Some(nodes) = manifest["nodes"].as_object() {
         for (node_id, node_data) in nodes {
+            // Only process dependencies if the target node was added to graph
+            if !graph.nodes.contains_key(node_id) {
+                continue;
+            }
+
             if let Some(depends_on) = node_data["depends_on"]["nodes"].as_array() {
                 for dep in depends_on {
                     if let Some(dep_id) = dep.as_str() {
-                        graph.add_edge(Edge {
-                            from: dep_id.to_string(),
-                            to: node_id.clone(),
-                            kind: EdgeKind::DependsOn,
-                        });
+                        // Only add edge if both nodes exist in graph
+                        // (filters out edges to tests, analyses, etc.)
+                        if graph.nodes.contains_key(dep_id) {
+                            graph.add_edge(Edge {
+                                from: dep_id.to_string(),
+                                to: node_id.clone(),
+                                kind: EdgeKind::DependsOn,
+                            });
+                        }
                     }
                 }
             }

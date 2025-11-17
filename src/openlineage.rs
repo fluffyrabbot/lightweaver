@@ -1,5 +1,9 @@
 // OpenLineage specification types
 // Spec: https://github.com/OpenLineage/OpenLineage/blob/main/spec/OpenLineage.md
+//
+// NOTE: Many types here are not yet used but are part of the OpenLineage standard
+// and will be needed for full facet support in future versions.
+#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
