@@ -70,37 +70,71 @@ impl SvgRenderer {
         }
         svg.push_str("  </g>\n");
 
-        // Add legend
-        svg.push_str(&self.render_legend(layout));
+        // Add legend with graph awareness
+        svg.push_str(&self.render_legend_with_graph(graph, layout));
 
         svg.push_str("</svg>");
         svg
     }
 
     fn render_legend(&self, layout: &LayoutResult) -> String {
-        let legend_x = layout.width - 200.0;
+        // Intentionally empty - will be replaced with graph-aware legend
+        String::new()
+    }
+
+    fn render_legend_with_graph(&self, graph: &PipelineGraph, layout: &LayoutResult) -> String {
+        use std::collections::HashMap;
+
+        let legend_x = layout.width - 220.0;
         let legend_y = 20.0;
         let mut svg = String::new();
 
+        // Count nodes by tool
+        let mut tool_counts: HashMap<ToolType, usize> = HashMap::new();
+        let mut has_datasets = false;
+
+        for node in graph.nodes.values() {
+            match &node.kind {
+                NodeKind::Job { tool, .. } => {
+                    *tool_counts.entry(*tool).or_insert(0) += 1;
+                }
+                NodeKind::Dataset { .. } => {
+                    has_datasets = true;
+                }
+                _ => {}
+            }
+        }
+
+        // Don't render legend if only one tool and no datasets
+        if tool_counts.len() == 0 && !has_datasets {
+            return String::new();
+        }
+
         svg.push_str(&format!(
-            r#"  <g id="legend">
-    <text x="{}" y="{}" font-family="{}" font-size="12" font-weight="bold" fill="{}">Legend</text>
-"#,
-            legend_x, legend_y, self.theme.font_family, self.theme.text_color
+            "  <g id=\"legend\">\n    <rect x=\"{}\" y=\"{}\" width=\"200\" height=\"{}\" rx=\"8\" fill=\"#ffffff\" stroke=\"#e5e7eb\" stroke-width=\"1\" opacity=\"0.95\"/>\n    <text x=\"{}\" y=\"{}\" font-family=\"{}\" font-size=\"12\" font-weight=\"bold\" fill=\"{}\">Pipeline Tools</text>\n",
+            legend_x - 10.0,
+            legend_y - 10.0,
+            30.0 + ((tool_counts.len() + if has_datasets { 1 } else { 0 }) as f64 * 25.0),
+            legend_x,
+            legend_y + 5.0,
+            self.theme.font_family,
+            self.theme.text_color
         ));
 
-        let legend_items = vec![
-            ("Table", &self.theme.node_fill.dbt_model_table),
-            ("View", &self.theme.node_fill.dbt_model_view),
-            ("Incremental", &self.theme.node_fill.dbt_model_incremental),
-            ("Source", &self.theme.node_fill.dbt_source),
-        ];
+        let mut idx = 0;
 
-        for (idx, (label, color)) in legend_items.iter().enumerate() {
+        // Sort tools by count (descending)
+        let mut tools: Vec<_> = tool_counts.iter().collect();
+        tools.sort_by(|a, b| b.1.cmp(a.1));
+
+        for (tool, count) in tools {
             let y = legend_y + 20.0 + (idx as f64 * 25.0);
+            let color = tool.color();
+            let name = tool.as_str();
+
             svg.push_str(&format!(
                 r#"    <rect x="{}" y="{}" width="16" height="16" rx="3" fill="{}"/>
-    <text x="{}" y="{}" font-family="{}" font-size="11" fill="{}">{}</text>
+    <text x="{}" y="{}" font-family="{}" font-size="11" fill="{}">{} ({})</text>
 "#,
                 legend_x,
                 y,
@@ -109,7 +143,23 @@ impl SvgRenderer {
                 y + 12.0,
                 self.theme.font_family,
                 self.theme.text_color,
-                label
+                name,
+                count
+            ));
+            idx += 1;
+        }
+
+        // Add datasets if present
+        if has_datasets {
+            let y = legend_y + 20.0 + (idx as f64 * 25.0);
+            svg.push_str(&format!(
+                "    <rect x=\"{}\" y=\"{}\" width=\"16\" height=\"16\" rx=\"3\" fill=\"#e5e7eb\" stroke=\"#9ca3af\" stroke-width=\"2\" stroke-dasharray=\"3,2\"/>\n    <text x=\"{}\" y=\"{}\" font-family=\"{}\" font-size=\"11\" fill=\"{}\">datasets</text>\n",
+                legend_x,
+                y,
+                legend_x + 22.0,
+                y + 12.0,
+                self.theme.font_family,
+                self.theme.text_color
             ));
         }
 
@@ -134,6 +184,7 @@ impl SvgRenderer {
 
     fn render_node(&self, node: &crate::graph::Node, pos: &Position) -> String {
         let fill_color = self.get_node_color(&node.kind);
+        let is_dataset = matches!(&node.kind, NodeKind::Dataset { .. });
 
         let mut svg = String::new();
 
@@ -146,21 +197,42 @@ impl SvgRenderer {
             self.node_height
         ));
 
-        // Node rectangle
-        svg.push_str(&format!(
-            r#"    <rect x="{}" y="{}" width="{}" height="{}" rx="8" fill="{}" stroke="{}" stroke-width="2"/>
+        // Node rectangle (different style for datasets)
+        if is_dataset {
+            // Dataset: dashed border, lighter fill
+            svg.push_str(&format!(
+                "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"8\" fill=\"#f3f4f6\" stroke=\"#9ca3af\" stroke-width=\"2\" stroke-dasharray=\"5,3\"/>\n",
+                pos.x, pos.y, self.node_width, self.node_height
+            ));
+        } else {
+            // Job: solid border, tool-specific color
+            svg.push_str(&format!(
+                "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"8\" fill=\"{}\" stroke=\"{}\" stroke-width=\"2\"/>\n",
+                pos.x, pos.y, self.node_width, self.node_height, fill_color, self.theme.node_stroke
+            ));
+        }
+
+        // Tool name (for Job nodes)
+        if let NodeKind::Job { tool, .. } = &node.kind {
+            let tool_name = tool.as_str();
+            svg.push_str(&format!(
+                r#"    <text x="{}" y="{}" text-anchor="middle" font-family="{}" font-size="8" font-weight="600" fill="{}" opacity="0.5">{}</text>
 "#,
-            pos.x,
-            pos.y,
-            self.node_width,
-            self.node_height,
-            fill_color,
-            self.theme.node_stroke
-        ));
+                pos.x + self.node_width / 2.0,
+                pos.y + 12.0,
+                self.theme.font_family,
+                self.theme.text_color,
+                tool_name.to_uppercase()
+            ));
+        }
 
         // Node type badge
         let badge_text = self.get_node_badge(&node.kind);
-        let badge_y = pos.y + 16.0;
+        let badge_y = if matches!(&node.kind, NodeKind::Job { .. }) {
+            pos.y + 26.0  // Lower for jobs (to make room for tool name)
+        } else {
+            pos.y + 16.0  // Higher for datasets
+        };
         svg.push_str(&format!(
             r#"    <text x="{}" y="{}" text-anchor="middle" font-family="{}" font-size="9" font-weight="bold" fill="{}" opacity="0.7">{}</text>
 "#,
@@ -256,29 +328,14 @@ impl SvgRenderer {
 
     fn get_node_color(&self, kind: &NodeKind) -> &str {
         match kind {
-            NodeKind::Job { tool, facets, .. } => {
-                match tool {
-                    ToolType::Dbt => {
-                        // Extract materialization from dbt facet for color selection
-                        if let Some(dbt_facet) = facets.get("dbt") {
-                            if let Some(mat) = dbt_facet.get("materialization") {
-                                if let Some(mat_str) = mat.as_str() {
-                                    return match mat_str {
-                                        "table" => &self.theme.node_fill.dbt_model_table,
-                                        "view" => &self.theme.node_fill.dbt_model_view,
-                                        "incremental" => &self.theme.node_fill.dbt_model_incremental,
-                                        _ => &self.theme.node_fill.dbt_model_view,
-                                    };
-                                }
-                            }
-                        }
-                        &self.theme.node_fill.dbt_model_view
-                    }
-                    ToolType::Airflow => &self.theme.node_fill.airflow_task,
-                    _ => tool.color(),  // Use ToolType's color for other tools
-                }
+            NodeKind::Job { tool, .. } => {
+                // Use official brand colors for all tools!
+                tool.color()
             }
-            NodeKind::Dataset { .. } => &self.theme.node_fill.dbt_source,
+            NodeKind::Dataset { .. } => {
+                // Datasets use neutral gray
+                "#f3f4f6"
+            }
 
             // Legacy support
             NodeKind::DbtModel { materialization, .. } => match materialization.as_str() {
