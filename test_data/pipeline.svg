@@ -1,0 +1,60 @@
+<svg width="970" height="430" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="edges">
+    <line x1="260" y1="110" x2="460" y2="110" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="30" x2="460" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="110" x2="460" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="660" y1="110" x2="860" y2="30" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="190" x2="660" y2="110" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="460" y1="110" x2="660" y2="110" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="460" y1="190" x2="660" y2="110" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="110" x2="660" y2="30" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="460" y1="30" x2="660" y2="30" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="60" y1="30" x2="460" y2="270" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="110" x2="460" y2="270" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="110" x2="460" y2="350" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="260" y1="30" x2="460" y2="30" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="60" y1="350" x2="260" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="60" y1="190" x2="260" y2="110" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="60" y1="110" x2="260" y2="30" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  </g>
+  <g id="nodes">
+    <rect x="400" y="80" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="460" y="114.66666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">customer_orders</text>
+    <rect x="600" y="0" width="120" height="60" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="660" y="34.666666666666664" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">fct_orders</text>
+    <rect x="400" y="320" width="120" height="60" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="460" y="354.6666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">holiday_orders</text>
+    <rect x="400" y="0" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="460" y="34.666666666666664" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">order_payments</text>
+    <rect x="0" y="160" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="60" y="194.66666666666666" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">raw_orders</text>
+    <rect x="400" y="240" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="460" y="274.6666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">hidden_model</text>
+    <rect x="200" y="80" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="260" y="114.66666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">stg_orders</text>
+    <rect x="200" y="160" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="260" y="194.66666666666666" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">stg_customers</text>
+    <rect x="0" y="240" width="120" height="60" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="60" y="274.6666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">tagged_source</text>
+    <rect x="200" y="0" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="260" y="34.666666666666664" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">stg_payments</text>
+    <rect x="0" y="320" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="60" y="354.6666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">raw_customers</text>
+    <rect x="400" y="160" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="460" y="194.66666666666666" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">customer_payments</text>
+    <rect x="600" y="80" width="120" height="60" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="660" y="114.66666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">dim_customers</text>
+    <rect x="0" y="80" width="120" height="60" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="60" y="114.66666666666667" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">raw_payments</text>
+    <rect x="800" y="0" width="120" height="60" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="860" y="34.666666666666664" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">dim_customers</text>
+    <rect x="0" y="0" width="120" height="60" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="60" y="34.666666666666664" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#111827">orders</text>
+  </g>
+</svg>

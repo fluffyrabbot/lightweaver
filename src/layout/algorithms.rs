@@ -21,9 +21,17 @@ pub fn topological_layers(graph: &PipelineGraph) -> Result<Vec<Vec<NodeId>>, Vec
     }
 
     // Count in-degrees and build adjacency list
+    // Skip edges that reference nodes not in the graph (e.g., tests, other filtered nodes)
     for edge in &graph.edges {
-        *in_degree.get_mut(&edge.to).unwrap() += 1;
-        out_edges.get_mut(&edge.from).unwrap().push(edge.to.clone());
+        if let Some(to_degree) = in_degree.get_mut(&edge.to) {
+            *to_degree += 1;
+        }
+        if let Some(from_edges) = out_edges.get_mut(&edge.from) {
+            // Only add edge if target node exists
+            if in_degree.contains_key(&edge.to) {
+                from_edges.push(edge.to.clone());
+            }
+        }
     }
 
     let mut layers: Vec<Vec<NodeId>> = Vec::new();

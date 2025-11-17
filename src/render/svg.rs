@@ -31,6 +31,17 @@ impl SvgRenderer {
         ));
         svg.push('\n');
 
+        // Define arrowhead marker
+        svg.push_str(&format!(
+            r#"  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="{}"/>
+    </marker>
+  </defs>
+"#,
+            self.theme.edge_stroke
+        ));
+
         // Background
         svg.push_str(&format!(
             r#"  <rect width="100%" height="100%" fill="{}"/>"#,
