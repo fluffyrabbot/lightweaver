@@ -77,11 +77,6 @@ impl SvgRenderer {
         svg
     }
 
-    fn render_legend(&self, layout: &LayoutResult) -> String {
-        // Intentionally empty - will be replaced with graph-aware legend
-        String::new()
-    }
-
     fn render_legend_with_graph(&self, graph: &PipelineGraph, layout: &LayoutResult) -> String {
         use std::collections::HashMap;
 
@@ -361,7 +356,12 @@ fn truncate_with_ellipsis(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
     } else {
-        format!("{}...", &s[..max_len - 3])
+        // Find a safe UTF-8 boundary for truncation (prevents mid-character panic)
+        let mut truncate_at = max_len.saturating_sub(3);
+        while truncate_at > 0 && !s.is_char_boundary(truncate_at) {
+            truncate_at -= 1;
+        }
+        format!("{}...", &s[..truncate_at])
     }
 }
 

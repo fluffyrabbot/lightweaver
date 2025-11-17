@@ -14,7 +14,7 @@ pub enum Command {
 
 pub struct GenerateArgs {
     pub dbt_manifest: Option<PathBuf>,
-    pub openlineage: Option<PathBuf>,
+    pub openlineage: Vec<PathBuf>,  // Support multiple OpenLineage files
     pub output: PathBuf,
     pub theme: String,
 }
@@ -23,7 +23,7 @@ impl Default for GenerateArgs {
     fn default() -> Self {
         Self {
             dbt_manifest: None,
-            openlineage: None,
+            openlineage: Vec::new(),
             output: PathBuf::from("pipeline.svg"),
             theme: "light".to_string(),
         }
@@ -65,7 +65,7 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 if i + 1 >= args.len() {
                     return Err("--openlineage requires a value".to_string());
                 }
-                gen_args.openlineage = Some(PathBuf::from(&args[i + 1]));
+                gen_args.openlineage.push(PathBuf::from(&args[i + 1]));
                 i += 2;
             }
             "--output" | "-o" => {
@@ -86,7 +86,7 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
         }
     }
 
-    if gen_args.dbt_manifest.is_none() && gen_args.openlineage.is_none() {
+    if gen_args.dbt_manifest.is_none() && gen_args.openlineage.is_empty() {
         return Err("At least one input source (--dbt or --openlineage) is required".to_string());
     }
 

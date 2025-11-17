@@ -49,10 +49,10 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
         graphs.push(g);
     }
 
-    // Parse OpenLineage events if provided
-    if let Some(openlineage_path) = args.openlineage {
+    // Parse OpenLineage events if provided (can have multiple files)
+    for openlineage_path in &args.openlineage {
         println!("📖 Reading OpenLineage events: {}", openlineage_path.display());
-        let g = parsers::openlineage::parse_events(&openlineage_path)?;
+        let g = parsers::openlineage::parse_events(openlineage_path)?;
         println!("   Found {} nodes, {} edges from OpenLineage", g.node_count(), g.edge_count());
         graphs.push(g);
     }

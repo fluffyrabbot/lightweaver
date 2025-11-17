@@ -1,7 +1,7 @@
 // Graph merger: combines multiple PipelineGraphs into one unified graph
 // Key insight: Use dataset URNs to stitch together cross-tool lineage
 
-use crate::graph::{Edge, EdgeKind, Node, NodeId, NodeKind, PipelineGraph};
+use crate::graph::{Edge, EdgeKind, NodeId, NodeKind, PipelineGraph};
 use std::collections::HashMap;
 
 /// Merge multiple PipelineGraphs into a single unified graph
@@ -16,29 +16,39 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
     let mut dataset_urn_to_id: HashMap<String, NodeId> = HashMap::new();
 
     // Phase 1: Collect all nodes and build dataset URN registry
-    for graph in &graphs {
+    for (graph_idx, graph) in graphs.iter().enumerate() {
         for (node_id, node) in &graph.nodes {
-            // Add node to merged graph
-            merged.nodes.insert(node_id.clone(), node.clone());
+            // Make node IDs unique across graphs by prefixing with graph index
+            let unique_id = format!("g{}:{}", graph_idx, node_id);
 
-            // If it's a dataset, register its URN
+            // Add node to merged graph
+            merged.nodes.insert(unique_id.clone(), node.clone());
+
+            // If it's a dataset, register its URN (keep LAST occurrence for deduplication)
             if let NodeKind::Dataset { namespace, name, .. } = &node.kind {
                 let urn = format!("{}:{}", namespace, name);
-                dataset_urn_to_id.insert(urn, node_id.clone());
+                dataset_urn_to_id.insert(urn, unique_id.clone());
             }
         }
     }
 
-    // Phase 2: Add all original edges
-    for graph in &graphs {
+    // Phase 2: Add all original edges (with prefixed IDs)
+    for (graph_idx, graph) in graphs.iter().enumerate() {
         for edge in &graph.edges {
-            merged.edges.push(edge.clone());
+            let prefixed_edge = Edge {
+                from: format!("g{}:{}", graph_idx, edge.from),
+                to: format!("g{}:{}", graph_idx, edge.to),
+                kind: edge.kind.clone(),
+            };
+            merged.edges.push(prefixed_edge);
         }
     }
 
     // Phase 3: Cross-tool stitching (the magic!)
     // Collect new edges to add (can't modify while iterating)
-    let mut new_edges = Vec::new();
+    use std::collections::HashSet;
+    let mut new_edges = HashSet::new();
+    let existing_edges: HashSet<_> = merged.edges.iter().collect();
 
     // For each Job node, check if its inputs/outputs match dataset URNs from other sources
     let jobs: Vec<_> = merged
@@ -90,12 +100,9 @@ pub fn merge_graphs(graphs: Vec<PipelineGraph>) -> PipelineGraph {
                                             kind: EdgeKind::ReadsFrom,
                                         };
 
-                                        if !merged.edges.iter().any(|e| {
-                                            e.from == new_edge.from && e.to == new_edge.to
-                                        }) && !new_edges.iter().any(|e: &Edge| {
-                                            e.from == new_edge.from && e.to == new_edge.to
-                                        }) {
-                                            new_edges.push(new_edge);
+                                        // Only add if edge doesn't already exist (O(1) lookup with HashSet)
+                                        if !existing_edges.contains(&new_edge) {
+                                            new_edges.insert(new_edge);
                                         }
                                     }
                                 }
@@ -153,16 +160,10 @@ pub fn deduplicate_datasets(graph: &mut PipelineGraph) {
         }
     }
 
-    // Remove duplicate edges
-    let mut unique_edges: Vec<Edge> = Vec::new();
-    for edge in &graph.edges {
-        if !unique_edges.iter().any(|e| {
-            e.from == edge.from && e.to == edge.to && e.kind == edge.kind
-        }) {
-            unique_edges.push(edge.clone());
-        }
-    }
-    graph.edges = unique_edges;
+    // Remove duplicate edges (using HashSet for O(n) instead of O(n²))
+    use std::collections::HashSet;
+    let unique_edges: HashSet<Edge> = graph.edges.drain(..).collect();
+    graph.edges = unique_edges.into_iter().collect();
 }
 
 #[cfg(test)]

@@ -104,7 +104,7 @@ pub struct NodeMetadata {
     pub owner: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Edge {
     pub from: NodeId,
     pub to: NodeId,
@@ -112,7 +112,7 @@ pub struct Edge {
 }
 
 /// Universal edge types for data lineage
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeKind {
     /// Data dependency: upstream job writes to dataset, downstream job reads from it
     /// Used for dbt model → model, Spark job → job, etc.
