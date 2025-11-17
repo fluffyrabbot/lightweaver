@@ -326,6 +326,88 @@ impl PipelineVisualizer {
             .replace("{{INITIAL_THEME}}", theme_name))
     }
 
+    /// Render the visualization to PNG format
+    ///
+    /// Creates a rasterized PNG image of the pipeline visualization.
+    /// Useful for embedding in documents, presentations, or reports.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lightweaver::PipelineVisualizer;
+    /// use std::path::Path;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut viz = PipelineVisualizer::new();
+    /// viz.add_openlineage_events(Path::new("events.json"))?;
+    ///
+    /// let png_bytes = viz.render_png()?;
+    /// std::fs::write("pipeline.png", png_bytes)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "png")]
+    pub fn render_png(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        // Get SVG content
+        let svg_content = self.render_svg()?;
+
+        // Parse SVG using resvg's usvg
+        let opt = resvg::usvg::Options::default();
+        let tree = resvg::usvg::Tree::from_str(&svg_content, &opt)?;
+
+        // Create pixmap
+        let size = tree.size();
+        let mut pixmap = tiny_skia::Pixmap::new(size.width() as u32, size.height() as u32)
+            .ok_or("Failed to create pixmap")?;
+
+        // Render SVG to pixmap
+        resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+
+        // Encode as PNG
+        let png_data = pixmap.encode_png()?;
+
+        Ok(png_data)
+    }
+
+    /// Render the visualization to PDF format
+    ///
+    /// Creates a vector PDF document of the pipeline visualization.
+    /// Maintains scalability and text quality for professional documents.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lightweaver::PipelineVisualizer;
+    /// use std::path::Path;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut viz = PipelineVisualizer::new();
+    /// viz.add_openlineage_events(Path::new("events.json"))?;
+    ///
+    /// let pdf_bytes = viz.render_pdf()?;
+    /// std::fs::write("pipeline.pdf", pdf_bytes)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "pdf")]
+    pub fn render_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        // Get SVG content
+        let svg_content = self.render_svg()?;
+
+        // Parse SVG using svg2pdf's usvg
+        let opt = svg2pdf::usvg::Options::default();
+        let tree = svg2pdf::usvg::Tree::from_str(&svg_content, &opt)?;
+
+        // Convert to PDF with default conversion options
+        let pdf = svg2pdf::to_pdf(
+            &tree,
+            svg2pdf::ConversionOptions::default(),
+            svg2pdf::PageOptions::default(),
+        ).map_err(|e| format!("PDF conversion error: {:?}", e))?;
+
+        Ok(pdf)
+    }
+
     /// Get statistics about the current graph
     pub fn stats(&self) -> Result<VisualizationStats, Box<dyn std::error::Error>> {
         let graph = self.graph()?;

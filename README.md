@@ -6,10 +6,11 @@ Universal Data Pipeline Visualizer supporting 100+ tools via [OpenLineage](https
 
 - **Multi-tool support**: dbt, Airflow, Spark, Fivetran, Dagster, Prefect, and any tool that emits OpenLineage events
 - **Cross-tool lineage stitching**: Automatically connects jobs from different tools via matching dataset URNs
+- **Multiple output formats**: SVG (vector), PNG (raster), PDF (vector), and interactive HTML
 - **Interactive HTML output**: Pan, zoom, search, and click-to-inspect with svg-pan-zoom
+- **Production-ready export**: High-quality PNG and PDF for documentation and presentations
 - **Powerful filtering**: Filter by tool type, tags, or namespaces to focus on specific parts of your pipeline
 - **Beautiful visualizations**: Hand-crafted SVG rendering with light/dark themes
-- **Zero dependencies**: Uses only `serde` and `serde_json` - no heavyweight frameworks
 - **Both library and CLI**: Use as a Rust library or command-line tool
 
 ## Installation
@@ -38,6 +39,12 @@ lightweaver generate --dbt target/manifest.json --output pipeline.svg
 # Interactive HTML (auto-detected from .html extension)
 lightweaver generate --openlineage events.json --output lineage.html
 
+# PNG export for presentations (auto-detected)
+lightweaver generate --openlineage events.json --output diagram.png
+
+# PDF export for documentation (auto-detected)
+lightweaver generate --dbt manifest.json --output lineage.pdf
+
 # Multi-source with dark theme
 lightweaver generate \
   --dbt manifest.json \
@@ -46,8 +53,8 @@ lightweaver generate \
   --theme dark \
   --output merged.svg
 
-# Interactive HTML with explicit format
-lightweaver generate --openlineage events.json --format html --output viz.html
+# Explicit format specification
+lightweaver generate --openlineage events.json --format pdf --output viz.pdf
 ```
 
 ### Options
@@ -59,7 +66,7 @@ OPTIONS:
     --dbt <PATH>            Path to dbt manifest.json
     --openlineage <PATH>    Path to OpenLineage events (can be specified multiple times)
     --output <PATH>         Output file path (default: pipeline.svg)
-    --format <FORMAT>       Output format: html, svg (auto-detected from extension)
+    --format <FORMAT>       Output format: svg, html, png, pdf (auto-detected from extension)
     --theme <THEME>         Color theme: light, dark (default: light)
     --quiet, -q             Suppress progress messages (warnings still shown)
 
@@ -134,6 +141,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Render
     let svg = viz.render_svg()?;
     std::fs::write("cross_tool_lineage.svg", svg)?;
+
+    Ok(())
+}
+```
+
+### PNG and PDF Export
+
+Generate publication-ready raster and vector outputs:
+
+```rust
+use lightweaver::PipelineVisualizer;
+use std::path::Path;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("events.json"))?;
+
+    // Export as PNG (raster, good for presentations)
+    let png_bytes = viz.render_png()?;
+    std::fs::write("diagram.png", png_bytes)?;
+
+    // Export as PDF (vector, good for documentation)
+    let pdf_bytes = viz.render_pdf()?;
+    std::fs::write("lineage.pdf", pdf_bytes)?;
+
+    // Interactive HTML (best for exploration)
+    let html = viz.render_html()?;
+    std::fs::write("interactive.html", html)?;
 
     Ok(())
 }

@@ -163,11 +163,11 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
             }
             "--format" => {
                 if i + 1 >= args.len() {
-                    return Err("--format requires a value (html or svg)".to_string());
+                    return Err("--format requires a value (svg, html, png, or pdf)".to_string());
                 }
                 let format = &args[i + 1];
-                if !matches!(format.as_str(), "html" | "svg") {
-                    return Err(format!("Invalid format '{}'. Valid options: html, svg", format));
+                if !matches!(format.as_str(), "svg" | "html" | "png" | "pdf") {
+                    return Err(format!("Invalid format '{}'. Valid options: svg, html, png, pdf", format));
                 }
                 gen_args.format = Some(format.clone());
                 i += 2;

@@ -300,3 +300,66 @@ fn test_edge_case_legacy_node_filtering() {
     let result = viz.render_svg();
     assert!(result.is_ok() || result.unwrap_err().to_string().contains("too restrictive"));
 }
+
+#[test]
+#[cfg(feature = "png")]
+fn test_library_api_png_rendering() {
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Should render to PNG
+    let png_bytes = viz.render_png().unwrap();
+
+    // Verify PNG signature (first 8 bytes)
+    assert!(png_bytes.len() > 8);
+    assert_eq!(&png_bytes[0..8], &[137, 80, 78, 71, 13, 10, 26, 10]); // PNG magic bytes
+
+    // Verify it's a reasonable size (should be at least 1KB)
+    assert!(png_bytes.len() > 1024, "PNG should be larger than 1KB, got {} bytes", png_bytes.len());
+}
+
+#[test]
+#[cfg(feature = "pdf")]
+fn test_library_api_pdf_rendering() {
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Should render to PDF
+    let pdf_bytes = viz.render_pdf().unwrap();
+
+    // Verify PDF signature (first 4 bytes)
+    assert!(pdf_bytes.len() > 4);
+    assert_eq!(&pdf_bytes[0..4], b"%PDF"); // PDF magic bytes
+
+    // Verify it's a reasonable size (should be at least 1KB)
+    assert!(pdf_bytes.len() > 1024, "PDF should be larger than 1KB, got {} bytes", pdf_bytes.len());
+}
+
+#[test]
+#[cfg(feature = "png")]
+fn test_library_api_png_with_theme() {
+    let mut viz = PipelineVisualizer::new().with_theme("dark");
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Should render PNG with dark theme
+    let png_bytes = viz.render_png().unwrap();
+    assert!(png_bytes.len() > 1024);
+    assert_eq!(&png_bytes[0..8], &[137, 80, 78, 71, 13, 10, 26, 10]);
+}
+
+#[test]
+#[cfg(feature = "pdf")]
+fn test_library_api_pdf_with_filters() {
+    use lightweaver::{GraphFilter, ToolType};
+
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+    viz.set_filter(filter);
+
+    // Should render filtered PDF
+    let pdf_bytes = viz.render_pdf().unwrap();
+    assert!(pdf_bytes.len() > 1024);
+    assert_eq!(&pdf_bytes[0..4], b"%PDF");
+}

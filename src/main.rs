@@ -155,24 +155,50 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     // Determine output format (explicit --format or auto-detect from extension)
     let format = args.format.as_deref().unwrap_or_else(|| {
-        if args.output.extension().and_then(|s| s.to_str()) == Some("html") {
-            "html"
-        } else {
-            "svg"
+        match args.output.extension().and_then(|s| s.to_str()) {
+            Some("html") => "html",
+            Some("png") => "png",
+            Some("pdf") => "pdf",
+            _ => "svg",
         }
     });
 
     // Render to appropriate format
-    let output_bytes = if format == "html" {
-        if !quiet {
-            println!("🎨 Rendering interactive HTML...");
+    let output_bytes = match format {
+        "html" => {
+            if !quiet {
+                println!("🎨 Rendering interactive HTML...");
+            }
+            viz.render_html()?.into_bytes()
         }
-        viz.render_html()?.into_bytes()
-    } else {
-        if !quiet {
-            println!("🎨 Rendering SVG...");
+        #[cfg(feature = "png")]
+        "png" => {
+            if !quiet {
+                println!("🎨 Rendering PNG image...");
+            }
+            viz.render_png()?
         }
-        viz.render_svg()?.into_bytes()
+        #[cfg(not(feature = "png"))]
+        "png" => {
+            return Err("PNG support not enabled. Rebuild with --features png".into());
+        }
+        #[cfg(feature = "pdf")]
+        "pdf" => {
+            if !quiet {
+                println!("🎨 Rendering PDF document...");
+            }
+            viz.render_pdf()?
+        }
+        #[cfg(not(feature = "pdf"))]
+        "pdf" => {
+            return Err("PDF support not enabled. Rebuild with --features pdf".into());
+        }
+        _ => {
+            if !quiet {
+                println!("🎨 Rendering SVG...");
+            }
+            viz.render_svg()?.into_bytes()
+        }
     };
 
     let size_kb = output_bytes.len() / 1024;
