@@ -214,6 +214,113 @@ impl PipelineGraph {
     pub fn datasets(&self) -> impl Iterator<Item = &Node> {
         self.nodes.values().filter(|n| matches!(n.kind, NodeKind::Dataset { .. }))
     }
+
+    /// Filter graph to only include nodes matching criteria
+    /// Returns a new graph with filtered nodes and only edges between remaining nodes
+    pub fn filter(&self, filter: &GraphFilter) -> PipelineGraph {
+        let mut filtered = PipelineGraph::new();
+
+        // Filter nodes
+        for node in self.nodes.values() {
+            if filter.matches(node) {
+                filtered.add_node(node.clone());
+            }
+        }
+
+        // Keep edges where both endpoints exist in filtered graph
+        for edge in &self.edges {
+            if filtered.nodes.contains_key(&edge.from) && filtered.nodes.contains_key(&edge.to) {
+                filtered.add_edge(edge.clone());
+            }
+        }
+
+        filtered
+    }
+}
+
+/// Filtering criteria for pipeline graphs
+#[derive(Debug, Clone, Default)]
+pub struct GraphFilter {
+    /// Filter by tool types (empty = all tools)
+    pub tools: Vec<ToolType>,
+    /// Filter by tags (node must have ALL specified tags)
+    pub tags: Vec<String>,
+    /// Filter by namespace prefix (e.g., "dbt://", "postgres://prod")
+    pub namespaces: Vec<String>,
+}
+
+impl GraphFilter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add a tool type filter
+    pub fn with_tool(mut self, tool: ToolType) -> Self {
+        self.tools.push(tool);
+        self
+    }
+
+    /// Add a tag filter
+    pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.push(tag.into());
+        self
+    }
+
+    /// Add a namespace prefix filter
+    pub fn with_namespace(mut self, namespace: impl Into<String>) -> Self {
+        self.namespaces.push(namespace.into());
+        self
+    }
+
+    /// Check if a node matches this filter
+    ///
+    /// Filter logic:
+    /// - Tools: OR (show nodes from ANY specified tool)
+    /// - Tags: AND (node must have ALL specified tags)
+    /// - Namespaces: OR (show nodes from ANY matching namespace prefix)
+    /// - Empty filter: matches all nodes
+    pub fn matches(&self, node: &Node) -> bool {
+        // If no filters specified, match everything
+        if self.tools.is_empty() && self.tags.is_empty() && self.namespaces.is_empty() {
+            return true;
+        }
+
+        // Tool filter (OR logic: match if node's tool is in the list)
+        // Only applies to Job nodes; Datasets always pass
+        if !self.tools.is_empty() {
+            match &node.kind {
+                NodeKind::Job { tool, .. } => {
+                    if !self.tools.contains(tool) {
+                        return false;
+                    }
+                }
+                // Datasets always pass tool filter (they're connected to jobs)
+                _ => {}
+            }
+        }
+
+        // Tag filter (AND logic: node must have ALL specified tags)
+        if !self.tags.is_empty() {
+            if !self.tags.iter().all(|tag| node.metadata.tags.contains(tag)) {
+                return false;
+            }
+        }
+
+        // Namespace filter (OR logic: namespace must start with ANY of the prefixes)
+        if !self.namespaces.is_empty() {
+            let namespace = match &node.kind {
+                NodeKind::Job { namespace, .. } => namespace,
+                NodeKind::Dataset { namespace, .. } => namespace,
+                _ => return false,
+            };
+
+            if !self.namespaces.iter().any(|prefix| namespace.starts_with(prefix)) {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 // Helper constructors for common node types
@@ -453,5 +560,125 @@ mod tests {
 
         let urn = PipelineGraph::dataset_urn(&node);
         assert_eq!(urn, Some("postgres://prod:public.customers".to_string()));
+    }
+
+    #[test]
+    fn test_filter_by_tool() {
+        let mut graph = PipelineGraph::new();
+
+        graph.add_node(Node::dbt_model("m1", "customers", "table", vec![]));
+        graph.add_node(Node::dbt_model("m2", "orders", "view", vec![]));
+        graph.add_node(Node::airflow_task("t1", "etl_dag", "load_data", "BashOperator"));
+
+        let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+        let filtered = graph.filter(&filter);
+
+        assert_eq!(filtered.node_count(), 2);
+        assert!(filtered.get_node(&"m1".to_string()).is_some());
+        assert!(filtered.get_node(&"m2".to_string()).is_some());
+        assert!(filtered.get_node(&"t1".to_string()).is_none());
+    }
+
+    #[test]
+    fn test_filter_by_tag() {
+        let mut graph = PipelineGraph::new();
+
+        graph.add_node(Node::dbt_model("m1", "customers", "table", vec!["core".to_string()]));
+        graph.add_node(Node::dbt_model("m2", "orders", "view", vec!["core".to_string(), "pii".to_string()]));
+        graph.add_node(Node::dbt_model("m3", "analytics", "view", vec![]));
+
+        let filter = GraphFilter::new().with_tag("core");
+        let filtered = graph.filter(&filter);
+
+        assert_eq!(filtered.node_count(), 2);
+        assert!(filtered.get_node(&"m1".to_string()).is_some());
+        assert!(filtered.get_node(&"m2".to_string()).is_some());
+    }
+
+    #[test]
+    fn test_filter_by_multiple_tags() {
+        let mut graph = PipelineGraph::new();
+
+        graph.add_node(Node::dbt_model("m1", "customers", "table", vec!["core".to_string()]));
+        graph.add_node(Node::dbt_model("m2", "orders", "view", vec!["core".to_string(), "pii".to_string()]));
+
+        // Filter requires BOTH tags
+        let filter = GraphFilter::new().with_tag("core").with_tag("pii");
+        let filtered = graph.filter(&filter);
+
+        assert_eq!(filtered.node_count(), 1);
+        assert!(filtered.get_node(&"m2".to_string()).is_some());
+    }
+
+    #[test]
+    fn test_filter_preserves_edges() {
+        let mut graph = PipelineGraph::new();
+
+        graph.add_node(Node::dbt_model("m1", "customers", "table", vec![]));
+        graph.add_node(Node::dbt_model("m2", "orders", "view", vec![]));
+        graph.add_node(Node::airflow_task("t1", "etl_dag", "load", "BashOperator"));
+
+        graph.add_edge(Edge::new("m1", "m2", EdgeKind::DataDependency));
+        graph.add_edge(Edge::new("m1", "t1", EdgeKind::DataDependency));
+
+        let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+        let filtered = graph.filter(&filter);
+
+        // Should have 2 nodes and 1 edge (m1 -> m2)
+        assert_eq!(filtered.node_count(), 2);
+        assert_eq!(filtered.edge_count(), 1);
+    }
+
+    #[test]
+    fn test_filter_by_namespace() {
+        let mut graph = PipelineGraph::new();
+
+        graph.add_node(Node {
+            id: "ds1".to_string(),
+            kind: NodeKind::Dataset {
+                namespace: "postgres://prod".to_string(),
+                name: "customers".to_string(),
+                facets: HashMap::new(),
+            },
+            metadata: NodeMetadata {
+                name: "customers".to_string(),
+                description: None,
+                tags: vec![],
+                owner: None,
+            },
+        });
+
+        graph.add_node(Node {
+            id: "ds2".to_string(),
+            kind: NodeKind::Dataset {
+                namespace: "postgres://dev".to_string(),
+                name: "orders".to_string(),
+                facets: HashMap::new(),
+            },
+            metadata: NodeMetadata {
+                name: "orders".to_string(),
+                description: None,
+                tags: vec![],
+                owner: None,
+            },
+        });
+
+        let filter = GraphFilter::new().with_namespace("postgres://prod");
+        let filtered = graph.filter(&filter);
+
+        assert_eq!(filtered.node_count(), 1);
+        assert!(filtered.get_node(&"ds1".to_string()).is_some());
+    }
+
+    #[test]
+    fn test_empty_filter_matches_all() {
+        let mut graph = PipelineGraph::new();
+        graph.add_node(Node::dbt_model("m1", "customers", "table", vec![]));
+        graph.add_node(Node::airflow_task("t1", "dag", "task", "BashOperator"));
+
+        let filter = GraphFilter::new();
+        let filtered = graph.filter(&filter);
+
+        assert_eq!(filtered.node_count(), 2);
     }
 }

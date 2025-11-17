@@ -19,6 +19,9 @@ pub struct GenerateArgs {
     pub output: PathBuf,
     pub theme: String,
     pub quiet: bool,
+    pub filter_tools: Vec<String>,      // --filter-tool dbt,airflow
+    pub filter_tags: Vec<String>,       // --filter-tag production,core
+    pub filter_namespaces: Vec<String>, // --filter-namespace postgres://prod
 }
 
 impl Default for GenerateArgs {
@@ -29,6 +32,9 @@ impl Default for GenerateArgs {
             output: PathBuf::from("pipeline.svg"),
             theme: "light".to_string(),
             quiet: false,
+            filter_tools: Vec::new(),
+            filter_tags: Vec::new(),
+            filter_namespaces: Vec::new(),
         }
     }
 }
@@ -108,6 +114,27 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 gen_args.quiet = true;
                 i += 1;
             }
+            "--filter-tool" => {
+                if i + 1 >= args.len() {
+                    return Err("--filter-tool requires a value (e.g., dbt, airflow, spark)".to_string());
+                }
+                gen_args.filter_tools.push(args[i + 1].clone());
+                i += 2;
+            }
+            "--filter-tag" => {
+                if i + 1 >= args.len() {
+                    return Err("--filter-tag requires a value (e.g., production, core)".to_string());
+                }
+                gen_args.filter_tags.push(args[i + 1].clone());
+                i += 2;
+            }
+            "--filter-namespace" => {
+                if i + 1 >= args.len() {
+                    return Err("--filter-namespace requires a value (e.g., postgres://prod)".to_string());
+                }
+                gen_args.filter_namespaces.push(args[i + 1].clone());
+                i += 2;
+            }
             arg => return Err(format!("Unknown argument: {}", arg)),
         }
     }
@@ -137,6 +164,14 @@ GENERATE OPTIONS:
     --theme <THEME>         Color theme: light, dark (default: light)
     --quiet, -q             Suppress progress messages (warnings still shown)
 
+FILTERING OPTIONS:
+    --filter-tool <TOOL>        Only show nodes from specific tool (dbt, airflow, spark, etc.)
+                                Can be specified multiple times
+    --filter-tag <TAG>          Only show nodes with specific tag
+                                Can be specified multiple times (AND logic)
+    --filter-namespace <NS>     Only show nodes from namespace prefix
+                                Can be specified multiple times (OR logic)
+
 EXAMPLES:
     # Generate from dbt manifest
     lightweaver generate --dbt target/manifest.json --output viz.svg
@@ -149,6 +184,15 @@ EXAMPLES:
 
     # Use dark theme
     lightweaver generate --openlineage events.json --theme dark
+
+    # Filter to show only dbt models
+    lightweaver generate --openlineage events.json --filter-tool dbt
+
+    # Filter to show only production nodes with core tag
+    lightweaver generate --openlineage events.json --filter-tag production --filter-tag core
+
+    # Filter to show only postgres prod database
+    lightweaver generate --openlineage events.json --filter-namespace postgres://prod
 
 SUPPORTED TOOLS (via OpenLineage):
     dbt, Airflow, Spark, Fivetran, Dagster, Prefect, Flink, Kafka,

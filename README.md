@@ -6,6 +6,7 @@ Universal Data Pipeline Visualizer supporting 100+ tools via [OpenLineage](https
 
 - **Multi-tool support**: dbt, Airflow, Spark, Fivetran, Dagster, Prefect, and any tool that emits OpenLineage events
 - **Cross-tool lineage stitching**: Automatically connects jobs from different tools via matching dataset URNs
+- **Powerful filtering**: Filter by tool type, tags, or namespaces to focus on specific parts of your pipeline
 - **Beautiful visualizations**: Hand-crafted SVG rendering with light/dark themes
 - **Zero dependencies**: Uses only `serde` and `serde_json` - no heavyweight frameworks
 - **Both library and CLI**: Use as a Rust library or command-line tool
@@ -55,6 +56,12 @@ OPTIONS:
     --openlineage <PATH>    Path to OpenLineage events (can be specified multiple times)
     --output <PATH>         Output SVG file path (default: pipeline.svg)
     --theme <THEME>         Color theme: light, dark (default: light)
+    --quiet, -q             Suppress progress messages (warnings still shown)
+
+FILTERING:
+    --filter-tool <TOOL>        Only show nodes from specific tool (dbt, airflow, spark, etc.)
+    --filter-tag <TAG>          Only show nodes with specific tag
+    --filter-namespace <NS>     Only show nodes from namespace prefix
 ```
 
 ## Library Usage
@@ -136,6 +143,53 @@ for dataset in graph.datasets() {
     }
 }
 ```
+
+### Filtering graphs
+
+Filter graphs to show only specific tools, tags, or namespaces:
+
+```rust
+use lightweaver::{PipelineVisualizer, GraphFilter, ToolType};
+
+let mut viz = PipelineVisualizer::new();
+viz.add_openlineage_events("events.json")?;
+
+// Filter to show only dbt nodes
+let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+viz.set_filter(filter);
+
+let svg = viz.render_svg()?;
+```
+
+**CLI filtering:**
+
+```bash
+# Show only dbt nodes
+lightweaver generate --openlineage events.json --filter-tool dbt
+
+# Show only production nodes with core tag
+lightweaver generate \
+  --openlineage events.json \
+  --filter-tag production \
+  --filter-tag core
+
+# Show only postgres prod database
+lightweaver generate \
+  --openlineage events.json \
+  --filter-namespace postgres://prod
+
+# Combine multiple filters
+lightweaver generate \
+  --openlineage events.json \
+  --filter-tool dbt \
+  --filter-tool airflow \
+  --filter-tag production
+```
+
+**Filter logic:**
+- Multiple `--filter-tool` flags = OR (show dbt OR airflow)
+- Multiple `--filter-tag` flags = AND (must have ALL tags)
+- Multiple `--filter-namespace` flags = OR (any matching prefix)
 
 ## How It Works
 
@@ -231,9 +285,9 @@ PRs welcome!
 - [x] Cross-tool stitching
 - [x] SVG rendering (light/dark themes)
 - [x] Library API
+- [x] Graph filtering (by tool, tag, namespace)
 - [ ] HTML output with interactivity
 - [ ] PNG/PDF export
-- [ ] Graph filtering (by tool, tag, etc.)
 - [ ] Configuration file support
 - [ ] Plugin system for custom parsers
 

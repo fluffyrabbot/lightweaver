@@ -67,3 +67,65 @@ fn test_library_api_error_handling() {
     let result = empty_viz.render_svg();
     assert!(result.is_err());
 }
+
+#[test]
+fn test_library_api_filtering() {
+    use lightweaver::{GraphFilter, ToolType};
+
+    // Load multi-tool pipeline
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Get unfiltered stats
+    let stats = viz.stats().unwrap();
+    let total_nodes = stats.total_nodes;
+    assert!(total_nodes > 0);
+
+    // Apply filter to show only dbt
+    let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+    viz.set_filter(filter);
+
+    // Should have fewer nodes after filtering
+    let filtered_stats = viz.stats().unwrap();
+    assert!(filtered_stats.total_nodes <= total_nodes);
+
+    // Should be able to render filtered graph
+    let svg = viz.render_svg().unwrap();
+    assert!(svg.contains("<svg"));
+
+    // Clear filter
+    viz.clear_filter();
+    let cleared_stats = viz.stats().unwrap();
+    assert_eq!(cleared_stats.total_nodes, total_nodes);
+}
+
+#[test]
+fn test_library_api_combined_filters() {
+    use lightweaver::{GraphFilter, ToolType};
+
+    // Load test data
+    let mut viz = PipelineVisualizer::new();
+    viz.add_openlineage_events(Path::new("test_data/cross_tool_pipeline.json")).unwrap();
+
+    // Test combining multiple tools (OR logic)
+    let multi_tool_filter = GraphFilter::new()
+        .with_tool(ToolType::Dbt)
+        .with_tool(ToolType::Airflow);
+    viz.set_filter(multi_tool_filter);
+
+    let stats = viz.stats().unwrap();
+    // Should include both dbt and airflow nodes
+    assert!(stats.total_nodes > 0);
+    let svg = viz.render_svg().unwrap();
+    assert!(svg.contains("<svg"));
+
+    // Test tool + namespace combination
+    let combined_filter = GraphFilter::new()
+        .with_tool(ToolType::Dbt)
+        .with_namespace("dbt://");
+    viz.set_filter(combined_filter);
+
+    let combined_stats = viz.stats().unwrap();
+    assert!(combined_stats.total_nodes > 0);
+    assert!(combined_stats.total_nodes <= stats.total_nodes);
+}

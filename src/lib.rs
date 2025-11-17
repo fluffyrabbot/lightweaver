@@ -55,7 +55,7 @@ pub mod parsers;
 pub mod render;
 
 // Re-exports for convenience
-pub use graph::{Edge, EdgeKind, Node, NodeId, NodeKind, PipelineGraph, ToolType};
+pub use graph::{Edge, EdgeKind, GraphFilter, Node, NodeId, NodeKind, PipelineGraph, ToolType};
 pub use layout::{hierarchical::HierarchicalLayout, Layout, LayoutError};
 pub use parsers::ParseError;
 pub use render::{SvgRenderer, Theme};
@@ -91,6 +91,7 @@ use std::path::Path;
 pub struct PipelineVisualizer {
     graphs: Vec<PipelineGraph>,
     theme: Theme,
+    filter: Option<GraphFilter>,
 }
 
 impl PipelineVisualizer {
@@ -99,6 +100,7 @@ impl PipelineVisualizer {
         Self {
             graphs: Vec::new(),
             theme: Theme::default(),
+            filter: None,
         }
     }
 
@@ -108,6 +110,39 @@ impl PipelineVisualizer {
             "dark" => Theme::dark(),
             _ => Theme::default(),
         };
+        self
+    }
+
+    /// Set a graph filter to apply during rendering
+    ///
+    /// Filters allow you to show only specific tools, tags, or namespaces.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lightweaver::{PipelineVisualizer, GraphFilter, ToolType};
+    /// use std::path::Path;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut viz = PipelineVisualizer::new();
+    /// viz.add_openlineage_events(Path::new("events.json"))?;
+    ///
+    /// // Show only dbt nodes
+    /// let filter = GraphFilter::new().with_tool(ToolType::Dbt);
+    /// viz.set_filter(filter);
+    ///
+    /// let svg = viz.render_svg()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn set_filter(&mut self, filter: GraphFilter) -> &mut Self {
+        self.filter = Some(filter);
+        self
+    }
+
+    /// Clear any applied filter
+    pub fn clear_filter(&mut self) -> &mut Self {
+        self.filter = None;
         self
     }
 
@@ -135,6 +170,7 @@ impl PipelineVisualizer {
     ///
     /// If multiple sources have been added, this merges them with
     /// cross-tool stitching based on dataset URNs.
+    /// If a filter is set, applies it to the merged graph.
     pub fn graph(&self) -> Result<PipelineGraph, Box<dyn std::error::Error>> {
         if self.graphs.is_empty() {
             return Err(
@@ -148,13 +184,20 @@ impl PipelineVisualizer {
             );
         }
 
-        if self.graphs.len() == 1 {
-            Ok(self.graphs[0].clone())
+        let mut graph = if self.graphs.len() == 1 {
+            self.graphs[0].clone()
         } else {
             let mut merged = lineage::merger::merge_graphs(self.graphs.clone());
             lineage::merger::deduplicate_datasets(&mut merged);
-            Ok(merged)
+            merged
+        };
+
+        // Apply filter if set
+        if let Some(ref filter) = self.filter {
+            graph = graph.filter(filter);
         }
+
+        Ok(graph)
     }
 
     /// Render the visualization to SVG

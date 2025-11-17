@@ -43,6 +43,61 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
     // Create visualizer with theme
     let mut viz = PipelineVisualizer::new().with_theme(&args.theme);
 
+    // Build filter if any filter flags provided
+    if !args.filter_tools.is_empty() || !args.filter_tags.is_empty() || !args.filter_namespaces.is_empty() {
+        use lightweaver::{GraphFilter, ToolType};
+
+        let mut filter = GraphFilter::new();
+
+        // Parse tool types
+        for tool_str in &args.filter_tools {
+            let tool = match tool_str.to_lowercase().as_str() {
+                "dbt" => ToolType::Dbt,
+                "airflow" => ToolType::Airflow,
+                "spark" => ToolType::Spark,
+                "fivetran" => ToolType::Fivetran,
+                "dagster" => ToolType::Dagster,
+                "prefect" => ToolType::Prefect,
+                "flink" => ToolType::Flink,
+                "kafka" => ToolType::Kafka,
+                "great_expectations" | "greatexpectations" => ToolType::GreatExpectations,
+                "custom" => ToolType::Custom,
+                _ => {
+                    return Err(format!(
+                        "Unknown tool type '{}'. Valid options: dbt, airflow, spark, fivetran, dagster, prefect, flink, kafka, great_expectations, custom",
+                        tool_str
+                    ).into());
+                }
+            };
+            filter = filter.with_tool(tool);
+        }
+
+        // Add tag filters
+        for tag in &args.filter_tags {
+            filter = filter.with_tag(tag.clone());
+        }
+
+        // Add namespace filters
+        for ns in &args.filter_namespaces {
+            filter = filter.with_namespace(ns.clone());
+        }
+
+        viz.set_filter(filter);
+
+        if !quiet {
+            println!("🔍 Applying filters:");
+            if !args.filter_tools.is_empty() {
+                println!("   Tools: {}", args.filter_tools.join(", "));
+            }
+            if !args.filter_tags.is_empty() {
+                println!("   Tags: {}", args.filter_tags.join(", "));
+            }
+            if !args.filter_namespaces.is_empty() {
+                println!("   Namespaces: {}", args.filter_namespaces.join(", "));
+            }
+        }
+    }
+
     // Add dbt manifest if provided
     if let Some(dbt_path) = args.dbt_manifest {
         if !quiet {
