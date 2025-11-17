@@ -18,6 +18,7 @@ pub struct GenerateArgs {
     pub openlineage: Vec<PathBuf>,  // Support multiple OpenLineage files
     pub output: PathBuf,
     pub theme: String,
+    pub quiet: bool,
 }
 
 impl Default for GenerateArgs {
@@ -27,6 +28,7 @@ impl Default for GenerateArgs {
             openlineage: Vec::new(),
             output: PathBuf::from("pipeline.svg"),
             theme: "light".to_string(),
+            quiet: false,
         }
     }
 }
@@ -102,6 +104,10 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 gen_args.theme = theme.clone();
                 i += 2;
             }
+            "--quiet" | "-q" => {
+                gen_args.quiet = true;
+                i += 1;
+            }
             arg => return Err(format!("Unknown argument: {}", arg)),
         }
     }
@@ -129,6 +135,7 @@ GENERATE OPTIONS:
     --openlineage <PATH>    Path to OpenLineage JSON events (ndjson or array)
     --output <PATH>         Output SVG file path (default: pipeline.svg)
     --theme <THEME>         Color theme: light, dark (default: light)
+    --quiet, -q             Suppress progress messages (warnings still shown)
 
 EXAMPLES:
     # Generate from dbt manifest

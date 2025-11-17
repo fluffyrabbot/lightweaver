@@ -38,33 +38,42 @@ fn main() {
 
 fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
     let start_time = Instant::now();
+    let quiet = args.quiet;
 
     // Create visualizer with theme
     let mut viz = PipelineVisualizer::new().with_theme(&args.theme);
 
     // Add dbt manifest if provided
     if let Some(dbt_path) = args.dbt_manifest {
-        println!("📖 Reading dbt manifest: {}", dbt_path.display());
+        if !quiet {
+            println!("📖 Reading dbt manifest: {}", dbt_path.display());
+        }
         viz.add_dbt_manifest(&dbt_path)?;
         let stats = viz.stats()?;
-        println!("   Found {} nodes, {} edges from dbt",
-            stats.total_nodes, stats.total_edges);
+        if !quiet {
+            println!("   Found {} nodes, {} edges from dbt",
+                stats.total_nodes, stats.total_edges);
+        }
     }
 
     // Add OpenLineage events if provided (can have multiple files)
     for openlineage_path in &args.openlineage {
-        println!("📖 Reading OpenLineage events: {}", openlineage_path.display());
+        if !quiet {
+            println!("📖 Reading OpenLineage events: {}", openlineage_path.display());
+        }
         let before = viz.stats().ok().map(|s| (s.total_nodes, s.total_edges));
         viz.add_openlineage_events(openlineage_path)?;
         let after = viz.stats()?;
 
-        if let Some((before_nodes, before_edges)) = before {
-            let new_nodes = after.total_nodes - before_nodes;
-            let new_edges = after.total_edges - before_edges;
-            println!("   Found {} nodes, {} edges from OpenLineage", new_nodes, new_edges);
-        } else {
-            println!("   Found {} nodes, {} edges from OpenLineage",
-                after.total_nodes, after.total_edges);
+        if !quiet {
+            if let Some((before_nodes, before_edges)) = before {
+                let new_nodes = after.total_nodes - before_nodes;
+                let new_edges = after.total_edges - before_edges;
+                println!("   Found {} nodes, {} edges from OpenLineage", new_nodes, new_edges);
+            } else {
+                println!("   Found {} nodes, {} edges from OpenLineage",
+                    after.total_nodes, after.total_edges);
+            }
         }
     }
 
@@ -72,26 +81,45 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
     let stats = viz.stats()?;
 
     // Show merge info if multiple sources
-    if stats.source_count > 1 {
+    if !quiet && stats.source_count > 1 {
         println!("🔗 Merging {} sources...", stats.source_count);
         println!("   Merged graph: {} nodes, {} edges", stats.total_nodes, stats.total_edges);
     }
 
+    // Warn about large graphs (always show, even in quiet mode)
+    if stats.total_nodes > 500 {
+        eprintln!("⚠️  Large graph warning: {} nodes detected", stats.total_nodes);
+        eprintln!("   Rendering may take longer and produce a large SVG file.");
+        eprintln!("   Consider filtering your input data or splitting into multiple visualizations.");
+    }
+
     // Render to SVG
-    println!("🎨 Rendering SVG...");
+    if !quiet {
+        println!("🎨 Rendering SVG...");
+    }
     let svg = viz.render_svg()?;
     let svg_bytes = svg.as_bytes();
 
     let size_kb = svg_bytes.len() / 1024;
-    println!("💾 Writing to: {} ({} KB)", args.output.display(), size_kb);
+    if !quiet {
+        println!("💾 Writing to: {} ({} KB)", args.output.display(), size_kb);
+    }
     fs::write(&args.output, svg_bytes)?;
 
-    let elapsed = start_time.elapsed().as_secs_f64();
-    println!("✨ Done! Generated {} in {:.2}s", args.output.display(), elapsed);
+    // Warn about very large SVG files (always show)
+    if size_kb > 5000 {
+        eprintln!("⚠️  Large SVG warning: {} KB generated", size_kb);
+        eprintln!("   This may be slow to open in browsers or editors.");
+        eprintln!("   Consider using a dedicated SVG viewer for best performance.");
+    }
 
-    // Output statistics summary
-    println!("\n📊 Summary:");
-    println!("   {}", stats);
+    let elapsed = start_time.elapsed().as_secs_f64();
+    if !quiet {
+        println!("✨ Done! Generated {} in {:.2}s", args.output.display(), elapsed);
+        // Output statistics summary
+        println!("\n📊 Summary:");
+        println!("   {}", stats);
+    }
 
     Ok(())
 }

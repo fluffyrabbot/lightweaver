@@ -137,7 +137,15 @@ impl PipelineVisualizer {
     /// cross-tool stitching based on dataset URNs.
     pub fn graph(&self) -> Result<PipelineGraph, Box<dyn std::error::Error>> {
         if self.graphs.is_empty() {
-            return Err("No data sources added. Use add_dbt_manifest() or add_openlineage_events()".into());
+            return Err(
+                "No pipeline nodes found. No data sources were added.\n\n\
+                 Possible reasons:\n\
+                 • You need to call add_dbt_manifest() or add_openlineage_events() first\n\
+                 • The input files were empty or contained no valid pipeline nodes\n\n\
+                 Example usage:\n\
+                 • viz.add_dbt_manifest(Path::new(\"target/manifest.json\"))?;\n\
+                 • viz.add_openlineage_events(Path::new(\"events.json\"))?;".into()
+            );
         }
 
         if self.graphs.len() == 1 {
@@ -157,6 +165,22 @@ impl PipelineVisualizer {
     /// 3. Renders to SVG with the configured theme
     pub fn render_svg(&self) -> Result<String, Box<dyn std::error::Error>> {
         let graph = self.graph()?;
+
+        // Check for empty graph
+        if graph.node_count() == 0 {
+            return Err(
+                "No pipeline nodes found to visualize.\n\n\
+                 Possible reasons:\n\
+                 • Your input files were parsed but contained no valid pipeline nodes\n\
+                 • dbt manifest has no models/seeds/snapshots (tests are filtered out)\n\
+                 • OpenLineage events file was empty or had no job/dataset information\n\n\
+                 Troubleshooting:\n\
+                 • Check that your input files are not empty\n\
+                 • Verify the file format matches the expected schema\n\
+                 • For dbt: ensure manifest.json contains models\n\
+                 • For OpenLineage: ensure events have 'job' and 'inputs'/'outputs' fields".into()
+            );
+        }
 
         // Compute layout
         let layout_engine = HierarchicalLayout::default();
