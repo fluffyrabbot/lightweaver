@@ -1,0 +1,73 @@
+[
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T11:00:00Z",
+    "run": {
+      "runId": "airflow-run-001"
+    },
+    "job": {
+      "namespace": "airflow://production",
+      "name": "daily_export.export_customers_to_s3",
+      "facets": {
+        "airflow": {
+          "dagId": "daily_export",
+          "taskId": "export_customers_to_s3",
+          "operator": "PostgresToS3Operator"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "analytics.customers",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "exports/customers/2025-01-17.parquet",
+        "facets": {
+          "dataSource": {
+            "name": "s3",
+            "uri": "s3://data-lake"
+          }
+        }
+      }
+    ],
+    "producer": "airflow/2.8.0"
+  },
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T12:00:00Z",
+    "run": {
+      "runId": "airflow-run-002"
+    },
+    "job": {
+      "namespace": "airflow://production",
+      "name": "daily_export.trigger_spark_job",
+      "facets": {
+        "airflow": {
+          "dagId": "daily_export",
+          "taskId": "trigger_spark_job",
+          "operator": "SparkSubmitOperator"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "exports/customers/2025-01-17.parquet",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "ml/customer_features/2025-01-17.parquet",
+        "facets": {}
+      }
+    ],
+    "producer": "airflow/2.8.0"
+  }
+]

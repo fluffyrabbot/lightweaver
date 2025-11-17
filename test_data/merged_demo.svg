@@ -1,0 +1,74 @@
+<svg width="2260" height="280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="edges">
+    <line x1="130" y1="90" x2="380" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="90" x2="630" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="630" y1="90" x2="880" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="880" y1="90" x2="1130" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1130" y1="90" x2="1380" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1380" y1="90" x2="1630" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1630" y1="90" x2="1880" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1880" y1="90" x2="2130" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  </g>
+  <g id="nodes">
+    <rect x="2052" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="2050" y="50" width="160" height="80" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="2130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="2130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">pkl</text>
+    <rect x="802" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="800" y="50" width="160" height="80" rx="8" fill="#FF694B" stroke="#1f2937" stroke-width="2"/>
+    <text x="880" y="62" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8" font-weight="600" fill="#111827" opacity="0.5">DBT</text>
+    <text x="880" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="880" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+    <text x="880" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">marts, core</text>
+    <rect x="1302" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1300" y="50" width="160" height="80" rx="8" fill="#017CEE" stroke="#1f2937" stroke-width="2"/>
+    <text x="1380" y="62" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8" font-weight="600" fill="#111827" opacity="0.5">AIRFLOW</text>
+    <text x="1380" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TASK</text>
+    <text x="1380" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">export_to_s3</text>
+    <rect x="52" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="50" width="160" height="80" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">customers</text>
+    <rect x="1552" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1550" y="50" width="160" height="80" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="1630" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="1630" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">parquet</text>
+    <rect x="1802" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1800" y="50" width="160" height="80" rx="8" fill="#E25A1C" stroke="#1f2937" stroke-width="2"/>
+    <text x="1880" y="62" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8" font-weight="600" fill="#111827" opacity="0.5">SPARK</text>
+    <text x="1880" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">JOB</text>
+    <text x="1880" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">train_churn_model</text>
+    <rect x="302" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="300" y="50" width="160" height="80" rx="8" fill="#FF694B" stroke="#1f2937" stroke-width="2"/>
+    <text x="380" y="62" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="8" font-weight="600" fill="#111827" opacity="0.5">DBT</text>
+    <text x="380" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="380" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_customers</text>
+    <text x="380" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging</text>
+    <rect x="1052" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1050" y="50" width="160" height="80" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="1130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="1130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+    <rect x="552" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="50" width="160" height="80" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="630" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="630" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_customers</text>
+  </g>
+  <g id="legend">
+    <rect x="2030" y="10" width="200" height="130" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" opacity="0.95"/>
+    <text x="2040" y="25" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="bold" fill="#111827">Pipeline Tools</text>
+    <rect x="2040" y="40" width="16" height="16" rx="3" fill="#FF694B"/>
+    <text x="2062" y="52" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">dbt (2)</text>
+    <rect x="2040" y="65" width="16" height="16" rx="3" fill="#017CEE"/>
+    <text x="2062" y="77" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">airflow (1)</text>
+    <rect x="2040" y="90" width="16" height="16" rx="3" fill="#E25A1C"/>
+    <text x="2062" y="102" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">spark (1)</text>
+    <rect x="2040" y="115" width="16" height="16" rx="3" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="2062" y="127" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">datasets</text>
+  </g>
+</svg>

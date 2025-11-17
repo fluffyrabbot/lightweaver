@@ -1,0 +1,116 @@
+[
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T10:00:00Z",
+    "run": {
+      "runId": "dbt-run-001"
+    },
+    "job": {
+      "namespace": "dbt://analytics",
+      "name": "models.transform_customers",
+      "facets": {
+        "dbt": {
+          "materialization": "table",
+          "tags": ["core", "customers"]
+        },
+        "sql": {
+          "query": "SELECT * FROM raw.customers WHERE status = 'active'"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "raw.customers",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "analytics.customers",
+        "facets": {
+          "outputStatistics": {
+            "rowCount": 50000
+          }
+        }
+      }
+    ],
+    "producer": "dbt-core/1.7.0"
+  },
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T11:00:00Z",
+    "run": {
+      "runId": "airflow-run-001"
+    },
+    "job": {
+      "namespace": "airflow://production",
+      "name": "daily_export.export_customers_to_s3",
+      "facets": {
+        "airflow": {
+          "dagId": "daily_export",
+          "taskId": "export_customers_to_s3",
+          "operator": "PostgresToS3Operator"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "analytics.customers",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "exports/customers/2025-01-17.parquet",
+        "facets": {
+          "dataSource": {
+            "name": "s3",
+            "uri": "s3://data-lake"
+          }
+        }
+      }
+    ],
+    "producer": "airflow/2.8.0"
+  },
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T12:00:00Z",
+    "run": {
+      "runId": "spark-run-001"
+    },
+    "job": {
+      "namespace": "spark://analytics-cluster",
+      "name": "feature_engineering.build_customer_features",
+      "facets": {
+        "spark": {
+          "applicationId": "spark-app-20250117",
+          "jobId": "job-123"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "exports/customers/2025-01-17.parquet",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "s3://data-lake",
+        "name": "ml/customer_features/2025-01-17.parquet",
+        "facets": {
+          "outputStatistics": {
+            "rowCount": 50000,
+            "size": 10485760
+          }
+        }
+      }
+    ],
+    "producer": "spark/3.5.0"
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "eventType": "COMPLETE",
+    "eventTime": "2025-01-17T10:00:00Z",
+    "run": {
+      "runId": "dbt-run-001"
+    },
+    "job": {
+      "namespace": "dbt://analytics",
+      "name": "models.transform_customers",
+      "facets": {
+        "dbt": {
+          "materialization": "table",
+          "tags": ["core", "customers"]
+        },
+        "sql": {
+          "query": "SELECT * FROM raw.customers WHERE status = 'active'"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "raw.customers",
+        "facets": {}
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "postgres://warehouse",
+        "name": "analytics.customers",
+        "facets": {
+          "outputStatistics": {
+            "rowCount": 50000
+          }
+        }
+      }
+    ],
+    "producer": "dbt-core/1.7.0"
+  }
+]

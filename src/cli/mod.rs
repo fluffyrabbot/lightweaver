@@ -87,7 +87,7 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
     }
 
     if gen_args.dbt_manifest.is_none() && gen_args.openlineage.is_none() {
-        return Err("Either --dbt or --openlineage is required".to_string());
+        return Err("At least one input source (--dbt or --openlineage) is required".to_string());
     }
 
     Ok(gen_args)
@@ -116,6 +116,9 @@ EXAMPLES:
 
     # Generate from OpenLineage events (supports 100+ tools!)
     lightweaver generate --openlineage events.json --output lineage.svg
+
+    # Combine multiple sources (cross-tool lineage!)
+    lightweaver generate --dbt manifest.json --openlineage events.json --output merged.svg
 
     # Use dark theme
     lightweaver generate --openlineage events.json --theme dark
