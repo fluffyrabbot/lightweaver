@@ -1,0 +1,69 @@
+<svg width="2260" height="280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="edges">
+    <line x1="130" y1="90" x2="380" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="380" y1="90" x2="630" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="630" y1="90" x2="880" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="880" y1="90" x2="1130" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1130" y1="90" x2="1380" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1380" y1="90" x2="1630" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1630" y1="90" x2="1880" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="1880" y1="90" x2="2130" y2="90" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  </g>
+  <g id="nodes">
+    <rect x="1552" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1550" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="1630" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="1630" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">parquet</text>
+    <rect x="302" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="300" y="50" width="160" height="80" rx="8" fill="#10b981" stroke="#1f2937" stroke-width="2"/>
+    <text x="380" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">VIEW</text>
+    <text x="380" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_customers</text>
+    <text x="380" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">staging</text>
+    <rect x="552" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="550" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="630" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="630" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">stg_customers</text>
+    <rect x="1302" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1300" y="50" width="160" height="80" rx="8" fill="#ef4444" stroke="#1f2937" stroke-width="2"/>
+    <text x="1380" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TASK</text>
+    <text x="1380" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">export_to_s3</text>
+    <rect x="52" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="50" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">customers</text>
+    <rect x="1802" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1800" y="50" width="160" height="80" rx="8" fill="#E25A1C" stroke="#1f2937" stroke-width="2"/>
+    <text x="1880" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">JOB</text>
+    <text x="1880" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">train_churn_model</text>
+    <rect x="802" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="800" y="50" width="160" height="80" rx="8" fill="#3b82f6" stroke="#1f2937" stroke-width="2"/>
+    <text x="880" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">TABLE</text>
+    <text x="880" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+    <text x="880" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#111827" opacity="0.6">marts, core</text>
+    <rect x="1052" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="1050" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="1130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="1130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">dim_customers</text>
+    <rect x="2052" y="52" width="160" height="80" rx="8" fill="#000000" opacity="0.1"/>
+    <rect x="2050" y="50" width="160" height="80" rx="8" fill="#f59e0b" stroke="#1f2937" stroke-width="2"/>
+    <text x="2130" y="66" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="bold" fill="#111827" opacity="0.7">DATASET</text>
+    <text x="2130" y="94" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#111827">pkl</text>
+  </g>
+  <g id="legend">
+    <text x="2060" y="20" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="bold" fill="#111827">Legend</text>
+    <rect x="2060" y="40" width="16" height="16" rx="3" fill="#3b82f6"/>
+    <text x="2082" y="52" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Table</text>
+    <rect x="2060" y="65" width="16" height="16" rx="3" fill="#10b981"/>
+    <text x="2082" y="77" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">View</text>
+    <rect x="2060" y="90" width="16" height="16" rx="3" fill="#8b5cf6"/>
+    <text x="2082" y="102" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Incremental</text>
+    <rect x="2060" y="115" width="16" height="16" rx="3" fill="#f59e0b"/>
+    <text x="2082" y="127" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#111827">Source</text>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
 // Parsers for different data pipeline formats
 
 pub mod dbt;
+pub mod openlineage;
 
 use std::fmt;
 

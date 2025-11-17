@@ -38,11 +38,19 @@ fn main() {
 }
 
 fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
-    let manifest_path = args.dbt_manifest.ok_or("--dbt is required")?;
-
-    println!("📖 Reading dbt manifest: {}", manifest_path.display());
-    let graph = parsers::dbt::parse_manifest(&manifest_path)?;
-    println!("   Found {} nodes, {} edges", graph.node_count(), graph.edge_count());
+    let graph = if let Some(openlineage_path) = args.openlineage {
+        println!("📖 Reading OpenLineage events: {}", openlineage_path.display());
+        let g = parsers::openlineage::parse_events(&openlineage_path)?;
+        println!("   Found {} nodes, {} edges", g.node_count(), g.edge_count());
+        g
+    } else if let Some(dbt_path) = args.dbt_manifest {
+        println!("📖 Reading dbt manifest: {}", dbt_path.display());
+        let g = parsers::dbt::parse_manifest(&dbt_path)?;
+        println!("   Found {} nodes, {} edges", g.node_count(), g.edge_count());
+        g
+    } else {
+        return Err("Either --dbt or --openlineage is required".into());
+    };
 
     println!("📐 Computing layout...");
     let layout_engine = HierarchicalLayout::default();

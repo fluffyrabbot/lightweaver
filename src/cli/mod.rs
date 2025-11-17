@@ -14,6 +14,7 @@ pub enum Command {
 
 pub struct GenerateArgs {
     pub dbt_manifest: Option<PathBuf>,
+    pub openlineage: Option<PathBuf>,
     pub output: PathBuf,
     pub theme: String,
 }
@@ -22,6 +23,7 @@ impl Default for GenerateArgs {
     fn default() -> Self {
         Self {
             dbt_manifest: None,
+            openlineage: None,
             output: PathBuf::from("pipeline.svg"),
             theme: "light".to_string(),
         }
@@ -59,6 +61,13 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
                 gen_args.dbt_manifest = Some(PathBuf::from(&args[i + 1]));
                 i += 2;
             }
+            "--openlineage" => {
+                if i + 1 >= args.len() {
+                    return Err("--openlineage requires a value".to_string());
+                }
+                gen_args.openlineage = Some(PathBuf::from(&args[i + 1]));
+                i += 2;
+            }
             "--output" | "-o" => {
                 if i + 1 >= args.len() {
                     return Err("--output requires a value".to_string());
@@ -77,8 +86,8 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
         }
     }
 
-    if gen_args.dbt_manifest.is_none() {
-        return Err("--dbt is required".to_string());
+    if gen_args.dbt_manifest.is_none() && gen_args.openlineage.is_none() {
+        return Err("Either --dbt or --openlineage is required".to_string());
     }
 
     Ok(gen_args)
@@ -86,7 +95,7 @@ fn parse_generate_args(args: &[String]) -> Result<GenerateArgs, String> {
 
 pub fn print_help() {
     println!(
-        r#"Lightweaver - Data Pipeline Visualizer
+        r#"Lightweaver - Universal Data Pipeline Visualizer
 
 USAGE:
     lightweaver <COMMAND> [OPTIONS]
@@ -96,18 +105,26 @@ COMMANDS:
     help        Show this help message
 
 GENERATE OPTIONS:
-    --dbt <PATH>        Path to dbt manifest.json (required)
-    --output <PATH>     Output SVG file path (default: pipeline.svg)
-    --theme <THEME>     Color theme: light, dark (default: light)
+    --dbt <PATH>            Path to dbt manifest.json
+    --openlineage <PATH>    Path to OpenLineage JSON events (ndjson or array)
+    --output <PATH>         Output SVG file path (default: pipeline.svg)
+    --theme <THEME>         Color theme: light, dark (default: light)
 
 EXAMPLES:
     # Generate from dbt manifest
     lightweaver generate --dbt target/manifest.json --output viz.svg
 
-    # Use dark theme
-    lightweaver generate --dbt manifest.json --theme dark
+    # Generate from OpenLineage events (supports 100+ tools!)
+    lightweaver generate --openlineage events.json --output lineage.svg
 
-For more info, visit: https://github.com/your-username/lightweaver
+    # Use dark theme
+    lightweaver generate --openlineage events.json --theme dark
+
+SUPPORTED TOOLS (via OpenLineage):
+    dbt, Airflow, Spark, Fivetran, Dagster, Prefect, Flink, Kafka,
+    Great Expectations, and any tool emitting OpenLineage events
+
+For more info, visit: https://github.com/fluffyrabbot/lightweaver
 "#
     );
 }
