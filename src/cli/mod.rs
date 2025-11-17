@@ -10,6 +10,7 @@ pub struct Args {
 pub enum Command {
     Generate(GenerateArgs),
     Help,
+    Version,
 }
 
 pub struct GenerateArgs {
@@ -42,6 +43,7 @@ pub fn parse_args() -> Result<Args, String> {
     let command = match args[1].as_str() {
         "generate" => Command::Generate(parse_generate_args(&args[2..])?),
         "help" | "--help" | "-h" => Command::Help,
+        "version" | "--version" | "-v" => Command::Version,
         cmd => return Err(format!("Unknown command: {}", cmd)),
     };
 

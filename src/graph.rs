@@ -111,6 +111,22 @@ pub struct Edge {
     pub kind: EdgeKind,
 }
 
+impl Edge {
+    /// Create a new edge
+    pub fn new(from: impl Into<NodeId>, to: impl Into<NodeId>, kind: EdgeKind) -> Self {
+        Self {
+            from: from.into(),
+            to: to.into(),
+            kind,
+        }
+    }
+
+    /// Check if this is a data flow edge
+    pub fn is_data_flow(&self) -> bool {
+        matches!(self.kind, EdgeKind::ReadsFrom | EdgeKind::WritesTo | EdgeKind::DataDependency)
+    }
+}
+
 /// Universal edge types for data lineage
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeKind {
@@ -178,10 +194,56 @@ impl PipelineGraph {
             _ => None,
         }
     }
+
+    /// Count of job nodes
+    pub fn job_count(&self) -> usize {
+        self.nodes.values().filter(|n| matches!(n.kind, NodeKind::Job { .. })).count()
+    }
+
+    /// Count of dataset nodes
+    pub fn dataset_count(&self) -> usize {
+        self.nodes.values().filter(|n| matches!(n.kind, NodeKind::Dataset { .. })).count()
+    }
+
+    /// Iterator over job nodes
+    pub fn jobs(&self) -> impl Iterator<Item = &Node> {
+        self.nodes.values().filter(|n| matches!(n.kind, NodeKind::Job { .. }))
+    }
+
+    /// Iterator over dataset nodes
+    pub fn datasets(&self) -> impl Iterator<Item = &Node> {
+        self.nodes.values().filter(|n| matches!(n.kind, NodeKind::Dataset { .. }))
+    }
 }
 
 // Helper constructors for common node types
 impl Node {
+    /// Check if this node is a job
+    pub fn is_job(&self) -> bool {
+        matches!(self.kind, NodeKind::Job { .. })
+    }
+
+    /// Check if this node is a dataset
+    pub fn is_dataset(&self) -> bool {
+        matches!(self.kind, NodeKind::Dataset { .. })
+    }
+
+    /// Get the tool type if this is a job node
+    pub fn tool(&self) -> Option<ToolType> {
+        match &self.kind {
+            NodeKind::Job { tool, .. } => Some(*tool),
+            _ => None,
+        }
+    }
+
+    /// Get the URN if this is a dataset node
+    pub fn urn(&self) -> Option<String> {
+        match &self.kind {
+            NodeKind::Dataset { namespace, name, .. } => Some(format!("{}:{}", namespace, name)),
+            _ => None,
+        }
+    }
+
     pub fn dbt_model(
         id: impl Into<String>,
         name: impl Into<String>,
@@ -287,6 +349,25 @@ impl Node {
                 owner: None,
             },
         }
+    }
+}
+
+// Display trait implementations for better debugging and logging
+impl std::fmt::Display for PipelineGraph {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "PipelineGraph({} nodes, {} edges)", self.node_count(), self.edge_count())
+    }
+}
+
+impl std::fmt::Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Node({}, {})", self.id, self.metadata.name)
+    }
+}
+
+impl std::fmt::Display for Edge {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} -> {} ({:?})", self.from, self.to, self.kind)
     }
 }
 

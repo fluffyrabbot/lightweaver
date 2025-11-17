@@ -35,10 +35,17 @@ fn main() {
         Command::Help => {
             print_help();
         }
+        Command::Version => {
+            println!("lightweaver {}", env!("CARGO_PKG_VERSION"));
+            println!("Universal Data Pipeline Visualizer");
+        }
     }
 }
 
 fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
+    use std::time::Instant;
+    let start_time = Instant::now();
+
     let mut graphs = Vec::new();
 
     // Parse dbt manifest if provided
@@ -89,11 +96,20 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let svg = renderer.render(&graph, &layout);
+    let svg_bytes = svg.as_bytes();
 
-    println!("💾 Writing to: {}", args.output.display());
-    fs::write(&args.output, svg)?;
+    let size_kb = svg_bytes.len() / 1024;
+    println!("💾 Writing to: {} ({} KB)", args.output.display(), size_kb);
+    fs::write(&args.output, svg_bytes)?;
 
-    println!("✨ Done! Generated {}", args.output.display());
+    let elapsed = start_time.elapsed().as_secs_f64();
+    println!("✨ Done! Generated {} in {:.2}s", args.output.display(), elapsed);
+
+    // Output statistics summary
+    println!("\n📊 Summary:");
+    println!("   {} nodes ({} jobs, {} datasets)",
+        graph.node_count(), graph.job_count(), graph.dataset_count());
+    println!("   {} edges", graph.edge_count());
 
     Ok(())
 }
