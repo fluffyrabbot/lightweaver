@@ -420,6 +420,58 @@ lightweaver connect \
 
 ---
 
+## Development Philosophy
+
+### Core Tenets
+
+**1. Tear Out and Replace Suboptimal Code Instantly**
+
+No incremental improvements to wrong directions. No sunk cost fallacy. If code doesn't serve the mission, delete it ruthlessly.
+
+- **60% of current codebase is being removed** - The Lox VM (~2,138 LOC), pixel renderer (129 LOC), generic shapes (200+ LOC)
+- **Not fixing, replacing** - Pixel buffer → SVG generator, generic graph → domain-specific DAG, general scripting → data pipeline DSL
+- **No gradual migration** - Scorched earth approach, rebuild from scratch
+- **Evidence over sentiment** - "This took time to build" is not a reason to keep it
+
+**2. Minimize Dependencies, Roll Bespoke When Practical**
+
+External dependencies are liabilities: version conflicts, supply chain risks, compilation time, cognitive overhead.
+
+- **Target: 1-2 dependencies total** - Only `serde`/`serde_json` for JSON parsing
+- **Reject common "conveniences"**:
+  - ❌ `clap` for CLI - 20 lines of `env::args()` is enough
+  - ❌ `petgraph` for graphs - Topological sort is ~50 LOC
+  - ❌ `svg` crate - String concatenation works fine
+  - ❌ Web frameworks - Not needed for MVP
+- **Hand-roll algorithms** - Layout algorithms, graph traversal, rendering
+- **Exception: JSON parsing** - Parsing JSON by hand is masochism, `serde` is acceptable
+- **Re-evaluate constantly** - If a dep stops pulling weight, delete it
+
+**3. Architecture from Bottom-Up, Not Top-Down**
+
+Start with core data structures and primitives. Build layers on solid foundations. No frameworks, no scaffolding, no boilerplate generators.
+
+**Build order:**
+1. **Layer 1: Data model** - What is a `Node`? An `Edge`? A `Pipeline`? (~200 LOC)
+2. **Layer 2: Algorithms** - Topological sort, cycle detection, layout (~400 LOC)
+3. **Layer 3: Parsers** - Read dbt manifest.json (~200 LOC)
+4. **Layer 4: Renderer** - Output SVG (~300 LOC)
+5. **Layer 5: CLI** - Tie it together (~200 LOC)
+
+Each layer stands alone. Each layer has zero knowledge of layers above. Tests at every layer.
+
+**Anti-patterns we reject:**
+- ❌ Starting with CLI/UX and backfilling logic
+- ❌ Framework-first development (Rails, Spring, etc.)
+- ❌ "We'll need X eventually" - build when needed, not before
+- ❌ Abstractions before concrete use cases
+
+**Result: ~2,050 LOC of focused code** (down from 5,911 LOC of scattered infrastructure)
+
+See `docs/teardown-analysis.md` for complete tear-out plan.
+
+---
+
 ## Guiding Principles
 
 ### 1. **Data Engineers First**
@@ -437,8 +489,8 @@ CLI generates static artifacts (SVG/HTML). UI is a convenience layer on top. Scr
 ### 5. **Integrate, Don't Replace**
 We're not building Airflow or dbt. We visualize what they produce. Play nice with existing tools.
 
-### 6. **Opinionated Defaults, Infinite Customization**
-Zero-config should produce good results. Power users can script everything via the VM.
+### 6. **Opinionated Defaults, Extensible Later**
+Zero-config should produce good results. Advanced features (scripting, customization) can come in V2+.
 
 ---
 
@@ -495,17 +547,43 @@ $ scp pipeline.html wiki.company.com/data-platform/
 
 ## Next Steps
 
-See `docs/roadmap.md` for detailed implementation plan.
+See `docs/teardown-analysis.md` for complete tear-out strategy and architecture plan.
 
-**Immediate priorities:**
-1. [ ] Parse dbt manifest.json → internal graph structure
-2. [ ] Implement hierarchical layout algorithm
-3. [ ] Render to SVG with labeled nodes
-4. [ ] Test on real dbt projects (dbt-labs/jaffle_shop, GitLab analytics)
-5. [ ] Write integration tests against known-good outputs
-6. [ ] Create CLI skeleton with clap
+**Phase 1: Scorched Earth (Day 1)**
+1. [ ] Delete entire `src/script/` directory (~2,138 LOC)
+2. [ ] Delete `src/render.rs`, `src/color.rs` (pixel renderer)
+3. [ ] Delete `src/shapes/`, `src/shape_tree.rs` (generic shapes)
+4. [ ] Delete `test_scripts/` (Lox examples)
+5. [ ] Update `Cargo.toml` - remove `png`, add `serde`/`serde_json`
+6. [ ] Create new directory structure: `src/{graph.rs,layout/,parsers/,render/,cli/}`
 
-**Contributions welcome.** See `CONTRIBUTING.md`.
+**Phase 2: Build Bottom-Up (Week 1-2)**
+1. [ ] Implement `src/graph.rs` - Core data model (Node, Edge, PipelineGraph)
+2. [ ] Implement `src/layout/algorithms.rs` - Topological sort, cycle detection
+3. [ ] Implement `src/layout/hierarchical.rs` - Layer assignment, basic layout
+4. [ ] Test layout with hand-crafted graphs (unit tests)
+5. [ ] Implement `src/parsers/dbt.rs` - Parse manifest.json into PipelineGraph
+6. [ ] Implement `src/render/svg.rs` - Generate SVG from layout
+7. [ ] Implement `src/cli/` - Hand-rolled arg parsing, wire everything together
+8. [ ] Integration test: `lightweaver generate --dbt manifest.json --output pipeline.svg`
+9. [ ] Test on dbt-labs/jaffle_shop (real project with ~8 models)
+10. [ ] Test on larger dbt project (50+ models)
+
+**Phase 3: Polish (Week 3)**
+1. [ ] Add themes (colors, fonts, styling)
+2. [ ] Improve layout aesthetics (spacing, alignment)
+3. [ ] Add node metadata rendering (tags, descriptions)
+4. [ ] Handle edge cases (cycles, disconnected nodes)
+5. [ ] Performance testing (1000+ node graphs)
+6. [ ] Write comprehensive README with examples
+7. [ ] Prepare for "Show HN" launch
+
+**Success criteria:**
+- End of Week 1: Generate SVG from jaffle_shop manifest
+- End of Week 2: Handle 50+ node projects, beautiful output
+- End of Week 3: Ready to share publicly
+
+**Contributions welcome.** But only after Phase 1 complete - we're tearing down first.
 
 ---
 
