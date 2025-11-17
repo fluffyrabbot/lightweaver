@@ -2,6 +2,21 @@
 name = "lightweaver"
 version = "0.1.0"
 edition = "2021"
+description = "Universal Data Pipeline Visualizer supporting 100+ tools via OpenLineage"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/fluffyrabbot/lightweaver"
+homepage = "https://github.com/fluffyrabbot/lightweaver"
+documentation = "https://docs.rs/lightweaver"
+keywords = ["data", "pipeline", "visualization", "openlineage", "dbt"]
+categories = ["command-line-utilities", "visualization"]
+
+[lib]
+name = "lightweaver"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lightweaver"
+path = "src/main.rs"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

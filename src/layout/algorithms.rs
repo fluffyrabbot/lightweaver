@@ -91,7 +91,7 @@ pub fn topological_layers(graph: &PipelineGraph) -> Result<Vec<Vec<NodeId>>, Vec
 }
 
 /// Detect which nodes are part of cycles
-fn detect_cycle_nodes(graph: &PipelineGraph, in_degree: &HashMap<NodeId, usize>) -> Vec<NodeId> {
+fn detect_cycle_nodes(_graph: &PipelineGraph, in_degree: &HashMap<NodeId, usize>) -> Vec<NodeId> {
     in_degree
         .iter()
         .filter(|(_, &degree)| degree > 0)

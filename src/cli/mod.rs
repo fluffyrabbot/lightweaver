@@ -165,9 +165,11 @@ mod tests {
             "out.svg".to_string(),
         ];
 
-        let result = parse_generate_args(&args).unwrap();
-        assert_eq!(result.dbt_manifest.unwrap(), PathBuf::from("test_data/jaffle_manifest.json"));
-        assert_eq!(result.output, PathBuf::from("out.svg"));
+        let result = parse_generate_args(&args);
+        assert!(result.is_ok());
+        let args = result.unwrap();
+        assert_eq!(args.dbt_manifest, Some(PathBuf::from("test_data/jaffle_manifest.json")));
+        assert_eq!(args.output, PathBuf::from("out.svg"));
     }
 
     #[test]

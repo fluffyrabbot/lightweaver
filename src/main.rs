@@ -1,18 +1,12 @@
-// Lightweaver - Data Pipeline Visualizer
+//! Lightweaver CLI - Thin wrapper around the library API
 
-mod graph;
-mod layout;
-mod lineage;
-mod openlineage;
-mod parsers;
-mod render;
 mod cli;
 
-use cli::{Command, parse_args, print_help};
-use layout::{Layout, hierarchical::HierarchicalLayout};
-use render::{SvgRenderer, Theme};
+use cli::{parse_args, print_help, Command};
+use lightweaver::PipelineVisualizer;
 use std::fs;
 use std::process;
+use std::time::Instant;
 
 fn main() {
     let args = match parse_args() {
@@ -43,59 +37,49 @@ fn main() {
 }
 
 fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
-    use std::time::Instant;
     let start_time = Instant::now();
 
-    let mut graphs = Vec::new();
+    // Create visualizer with theme
+    let mut viz = PipelineVisualizer::new().with_theme(&args.theme);
 
-    // Parse dbt manifest if provided
+    // Add dbt manifest if provided
     if let Some(dbt_path) = args.dbt_manifest {
         println!("📖 Reading dbt manifest: {}", dbt_path.display());
-        let g = parsers::dbt::parse_manifest(&dbt_path)?;
-        println!("   Found {} nodes, {} edges from dbt", g.node_count(), g.edge_count());
-        graphs.push(g);
+        viz.add_dbt_manifest(&dbt_path)?;
+        let stats = viz.stats()?;
+        println!("   Found {} nodes, {} edges from dbt",
+            stats.total_nodes, stats.total_edges);
     }
 
-    // Parse OpenLineage events if provided (can have multiple files)
+    // Add OpenLineage events if provided (can have multiple files)
     for openlineage_path in &args.openlineage {
         println!("📖 Reading OpenLineage events: {}", openlineage_path.display());
-        let g = parsers::openlineage::parse_events(openlineage_path)?;
-        println!("   Found {} nodes, {} edges from OpenLineage", g.node_count(), g.edge_count());
-        graphs.push(g);
+        let before = viz.stats().ok().map(|s| (s.total_nodes, s.total_edges));
+        viz.add_openlineage_events(openlineage_path)?;
+        let after = viz.stats()?;
+
+        if let Some((before_nodes, before_edges)) = before {
+            let new_nodes = after.total_nodes - before_nodes;
+            let new_edges = after.total_edges - before_edges;
+            println!("   Found {} nodes, {} edges from OpenLineage", new_nodes, new_edges);
+        } else {
+            println!("   Found {} nodes, {} edges from OpenLineage",
+                after.total_nodes, after.total_edges);
+        }
     }
 
-    if graphs.is_empty() {
-        return Err("At least one input source is required".into());
+    // Get final stats
+    let stats = viz.stats()?;
+
+    // Show merge info if multiple sources
+    if stats.source_count > 1 {
+        println!("🔗 Merging {} sources...", stats.source_count);
+        println!("   Merged graph: {} nodes, {} edges", stats.total_nodes, stats.total_edges);
     }
 
-    // Merge graphs if multiple sources
-    let graph = if graphs.len() > 1 {
-        println!("🔗 Merging {} sources...", graphs.len());
-        let mut merged = lineage::merger::merge_graphs(graphs);
-        lineage::merger::deduplicate_datasets(&mut merged);
-        println!("   Merged graph: {} nodes, {} edges", merged.node_count(), merged.edge_count());
-        merged
-    } else {
-        graphs.into_iter().next().unwrap()
-    };
-
-    println!("📐 Computing layout...");
-    let layout_engine = HierarchicalLayout::default();
-    let layout = layout_engine.compute(&graph)?;
-    println!("   Layout complete: {}x{}", layout.width as u32, layout.height as u32);
-
+    // Render to SVG
     println!("🎨 Rendering SVG...");
-    let theme = match args.theme.as_str() {
-        "dark" => Theme::dark(),
-        _ => Theme::default(),
-    };
-
-    let renderer = SvgRenderer {
-        theme,
-        ..Default::default()
-    };
-
-    let svg = renderer.render(&graph, &layout);
+    let svg = viz.render_svg()?;
     let svg_bytes = svg.as_bytes();
 
     let size_kb = svg_bytes.len() / 1024;
@@ -107,9 +91,7 @@ fn generate(args: cli::GenerateArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     // Output statistics summary
     println!("\n📊 Summary:");
-    println!("   {} nodes ({} jobs, {} datasets)",
-        graph.node_count(), graph.job_count(), graph.dataset_count());
-    println!("   {} edges", graph.edge_count());
+    println!("   {}", stats);
 
     Ok(())
 }
