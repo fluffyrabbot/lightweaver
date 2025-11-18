@@ -53,6 +53,7 @@ pub mod layout;
 pub mod lineage;
 pub mod openlineage;
 pub mod parsers;
+pub mod plugin;
 pub mod render;
 
 // Re-exports for convenience
@@ -60,6 +61,7 @@ pub use config::{Config, FilterConfig};
 pub use graph::{Edge, EdgeKind, GraphFilter, Node, NodeId, NodeKind, PipelineGraph, ToolType};
 pub use layout::{hierarchical::HierarchicalLayout, Layout, LayoutError};
 pub use parsers::ParseError;
+pub use plugin::{Parser, ParserPlugin, ParserRegistry};
 pub use render::{SvgRenderer, Theme};
 
 use std::path::Path;
@@ -94,6 +96,12 @@ pub struct PipelineVisualizer {
     graphs: Vec<PipelineGraph>,
     theme: Theme,
     filter: Option<GraphFilter>,
+    /// Cached merged graph (invalidated when new sources added)
+    merged_cache: Option<PipelineGraph>,
+    /// Cached layout result (invalidated when graph or filter changes)
+    layout_cache: Option<layout::LayoutResult>,
+    /// Registry for custom parser plugins
+    plugin_registry: ParserRegistry,
 }
 
 impl PipelineVisualizer {
@@ -103,6 +111,9 @@ impl PipelineVisualizer {
             graphs: Vec::new(),
             theme: Theme::default(),
             filter: None,
+            merged_cache: None,
+            layout_cache: None,
+            plugin_registry: ParserRegistry::new(),
         }
     }
 
@@ -139,12 +150,16 @@ impl PipelineVisualizer {
     /// ```
     pub fn set_filter(&mut self, filter: GraphFilter) -> &mut Self {
         self.filter = Some(filter);
+        // Invalidate layout cache when filter changes
+        self.layout_cache = None;
         self
     }
 
     /// Clear any applied filter
     pub fn clear_filter(&mut self) -> &mut Self {
         self.filter = None;
+        // Invalidate layout cache when filter changes
+        self.layout_cache = None;
         self
     }
 
@@ -155,6 +170,9 @@ impl PipelineVisualizer {
     pub fn add_dbt_manifest(&mut self, path: &Path) -> Result<&mut Self, ParseError> {
         let graph = parsers::dbt::parse_manifest(path)?;
         self.graphs.push(graph);
+        // Invalidate caches when adding new source
+        self.merged_cache = None;
+        self.layout_cache = None;
         Ok(self)
     }
 
@@ -165,7 +183,93 @@ impl PipelineVisualizer {
     pub fn add_openlineage_events(&mut self, path: &Path) -> Result<&mut Self, ParseError> {
         let graph = parsers::openlineage::parse_events(path)?;
         self.graphs.push(graph);
+        // Invalidate caches when adding new source
+        self.merged_cache = None;
+        self.layout_cache = None;
         Ok(self)
+    }
+
+    /// Register a custom parser plugin
+    ///
+    /// Allows you to extend Lightweaver with support for custom data formats.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lightweaver::{PipelineVisualizer, Parser, PipelineGraph};
+    /// use lightweaver::parsers::ParseError;
+    /// use std::path::Path;
+    ///
+    /// struct MyParser;
+    ///
+    /// impl Parser for MyParser {
+    ///     fn name(&self) -> &str { "my_parser" }
+    ///     fn parse(&self, path: &Path) -> Result<PipelineGraph, ParseError> {
+    ///         // Custom parsing logic
+    ///         Ok(PipelineGraph::new())
+    ///     }
+    ///     fn supported_extensions(&self) -> Vec<&str> {
+    ///         vec!["custom"]
+    ///     }
+    /// }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut viz = PipelineVisualizer::new();
+    /// viz.register_parser(Box::new(MyParser));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn register_parser(&mut self, parser: ParserPlugin) -> &mut Self {
+        self.plugin_registry.register(parser);
+        self
+    }
+
+    /// Add a data source using a registered plugin parser
+    ///
+    /// Automatically finds a parser that can handle the given file.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lightweaver::PipelineVisualizer;
+    /// use std::path::Path;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut viz = PipelineVisualizer::new();
+    /// // Register custom parser first
+    /// // viz.register_parser(Box::new(MyParser));
+    ///
+    /// // Then add file - parser is selected automatically by extension
+    /// // viz.add_source(Path::new("data.custom"))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn add_source(&mut self, path: &Path) -> Result<&mut Self, ParseError> {
+        // Try to find a registered plugin parser
+        if let Some(parser) = self.plugin_registry.find_parser(path) {
+            let graph = parser.parse(path)?;
+            self.graphs.push(graph);
+            // Invalidate caches when adding new source
+            self.merged_cache = None;
+            self.layout_cache = None;
+            return Ok(self);
+        }
+
+        // Fall back to built-in parsers based on file name or extension
+        let path_str = path.to_string_lossy().to_lowercase();
+
+        if path_str.contains("manifest") && path_str.ends_with(".json") {
+            return self.add_dbt_manifest(path);
+        } else if path_str.ends_with(".json") || path_str.ends_with(".ndjson") {
+            return self.add_openlineage_events(path);
+        }
+
+        Err(ParseError::InvalidFormat(format!(
+            "No parser found for file: {}\n\
+             • Register a custom parser with register_parser()\n\
+             • Or use add_dbt_manifest() or add_openlineage_events() explicitly",
+            path.display()
+        )))
     }
 
     /// Get the current merged graph
@@ -173,7 +277,9 @@ impl PipelineVisualizer {
     /// If multiple sources have been added, this merges them with
     /// cross-tool stitching based on dataset URNs.
     /// If a filter is set, applies it to the merged graph.
-    pub fn graph(&self) -> Result<PipelineGraph, Box<dyn std::error::Error>> {
+    ///
+    /// Uses caching to avoid re-merging graphs on repeated calls.
+    pub fn graph(&mut self) -> Result<PipelineGraph, Box<dyn std::error::Error>> {
         if self.graphs.is_empty() {
             return Err(
                 "No pipeline nodes found. No data sources were added.\n\n\
@@ -186,13 +292,20 @@ impl PipelineVisualizer {
             );
         }
 
-        let mut graph = if self.graphs.len() == 1 {
-            self.graphs[0].clone()
-        } else {
-            let mut merged = lineage::merger::merge_graphs(self.graphs.clone());
-            lineage::merger::deduplicate_datasets(&mut merged);
-            merged
-        };
+        // Compute merged graph if not cached
+        if self.merged_cache.is_none() {
+            let merged = if self.graphs.len() == 1 {
+                self.graphs[0].clone()
+            } else {
+                let mut merged = lineage::merger::merge_graphs(self.graphs.clone());
+                lineage::merger::deduplicate_datasets(&mut merged);
+                merged
+            };
+            self.merged_cache = Some(merged);
+        }
+
+        // Get cached graph and apply filter if needed
+        let mut graph = self.merged_cache.as_ref().unwrap().clone();
 
         // Apply filter if set
         if let Some(ref filter) = self.filter {
@@ -205,10 +318,10 @@ impl PipelineVisualizer {
     /// Render the visualization to SVG
     ///
     /// This is the main method for library usage. It:
-    /// 1. Merges all added sources
-    /// 2. Computes hierarchical layout
+    /// 1. Merges all added sources (cached after first call)
+    /// 2. Computes hierarchical layout (cached after first call)
     /// 3. Renders to SVG with the configured theme
-    pub fn render_svg(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn render_svg(&mut self) -> Result<String, Box<dyn std::error::Error>> {
         let graph = self.graph()?;
 
         // Check for empty graph
@@ -239,9 +352,15 @@ impl PipelineVisualizer {
             }
         }
 
-        // Compute layout
-        let layout_engine = HierarchicalLayout::default();
-        let layout = layout_engine.compute(&graph)?;
+        // Compute layout with caching
+        let layout = if let Some(cached) = &self.layout_cache {
+            cached.clone()
+        } else {
+            let layout_engine = HierarchicalLayout::default();
+            let layout = layout_engine.compute(&graph)?;
+            self.layout_cache = Some(layout.clone());
+            layout
+        };
 
         // Render SVG
         let renderer = SvgRenderer {
@@ -276,7 +395,7 @@ impl PipelineVisualizer {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn render_html(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn render_html(&mut self) -> Result<String, Box<dyn std::error::Error>> {
         let svg_content = self.render_svg()?;
         let graph = self.graph()?;
 
@@ -349,7 +468,7 @@ impl PipelineVisualizer {
     /// # }
     /// ```
     #[cfg(feature = "png")]
-    pub fn render_png(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    pub fn render_png(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         // Get SVG content
         let svg_content = self.render_svg()?;
 
@@ -392,7 +511,7 @@ impl PipelineVisualizer {
     /// # }
     /// ```
     #[cfg(feature = "pdf")]
-    pub fn render_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    pub fn render_pdf(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         // Get SVG content
         let svg_content = self.render_svg()?;
 
@@ -411,7 +530,7 @@ impl PipelineVisualizer {
     }
 
     /// Get statistics about the current graph
-    pub fn stats(&self) -> Result<VisualizationStats, Box<dyn std::error::Error>> {
+    pub fn stats(&mut self) -> Result<VisualizationStats, Box<dyn std::error::Error>> {
         let graph = self.graph()?;
 
         Ok(VisualizationStats {

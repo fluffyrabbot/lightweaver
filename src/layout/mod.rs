@@ -12,7 +12,7 @@ pub struct Position {
     pub y: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LayoutResult {
     pub positions: HashMap<NodeId, Position>,
     pub width: f64,

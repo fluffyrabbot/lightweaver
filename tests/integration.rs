@@ -63,7 +63,7 @@ fn test_library_api_error_handling() {
     assert!(result.is_err());
 
     // Empty visualizer should error on render
-    let empty_viz = PipelineVisualizer::new();
+    let mut empty_viz = PipelineVisualizer::new();
     let result = empty_viz.render_svg();
     assert!(result.is_err());
 }

@@ -6,18 +6,36 @@ use crate::openlineage::RunEvent;
 use crate::parsers::ParseError;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 /// Parse OpenLineage events from a JSON file
 /// Supports both newline-delimited JSON (NDJSON) and JSON arrays
+///
+/// For large NDJSON files, uses streaming parser to avoid loading entire file into memory.
+/// For JSON arrays, falls back to in-memory parsing.
 pub fn parse_events(path: &Path) -> Result<PipelineGraph, ParseError> {
-    // Validate file size to prevent OOM (100MB limit)
-    const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024;
     let metadata = fs::metadata(path)?;
+
+    // For files larger than 10MB, try streaming NDJSON parser first
+    const STREAMING_THRESHOLD: u64 = 10 * 1024 * 1024;
+
+    if metadata.len() > STREAMING_THRESHOLD {
+        // Try streaming NDJSON parser for large files
+        if let Ok(graph) = parse_events_streaming(path) {
+            return Ok(graph);
+        }
+    }
+
+    // For smaller files or JSON arrays, use in-memory parser
+    // Validate file size to prevent OOM (100MB limit for in-memory parsing)
+    const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(ParseError::InvalidFormat(
-            format!("File too large: {} bytes (max: {} MB). Consider splitting your events file.",
+            format!("File too large: {} bytes (max: {} MB for in-memory parsing).\n\
+                     For NDJSON files, ensure each line is valid JSON.\n\
+                     For JSON arrays, consider splitting your events file.",
                     metadata.len(), MAX_FILE_SIZE / 1024 / 1024)
         ));
     }
@@ -43,115 +61,162 @@ pub fn parse_events(path: &Path) -> Result<PipelineGraph, ParseError> {
     build_graph_from_events(events)
 }
 
-/// Build a PipelineGraph from OpenLineage RunEvents
-fn build_graph_from_events(events: Vec<RunEvent>) -> Result<PipelineGraph, ParseError> {
+/// Streaming parser for NDJSON files - processes line by line without loading entire file
+///
+/// This allows parsing arbitrarily large NDJSON files with constant memory usage.
+/// Each line is parsed individually and the graph is built incrementally.
+fn parse_events_streaming(path: &Path) -> Result<PipelineGraph, ParseError> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
     let mut graph = PipelineGraph::new();
-    let mut dataset_registry: HashMap<String, String> = HashMap::new(); // URN -> node_id
-    let mut job_registry: HashMap<String, String> = HashMap::new(); // job_key -> node_id
+    let mut dataset_registry: HashMap<String, String> = HashMap::new();
+    let mut job_registry: HashMap<String, String> = HashMap::new();
 
-    for event in events {
-        // Extract job information
-        let job_key = format!("{}:{}", event.job.namespace, event.job.name);
-        let job_idx = job_registry.len();
-        let job_node_id = job_registry
-            .entry(job_key.clone())
-            .or_insert_with(|| format!("job_{}", job_idx));
+    for (line_num, line_result) in reader.lines().enumerate() {
+        let line = line_result?;
+        let line = line.trim();
 
-        // Determine tool type from namespace
-        let tool = detect_tool_type(&event.job.namespace);
-
-        // Only add job node once (on first event)
-        if !graph.nodes.contains_key(job_node_id) {
-            let job_node = Node {
-                id: job_node_id.clone(),
-                kind: NodeKind::Job {
-                    namespace: event.job.namespace.clone(),
-                    name: event.job.name.clone(),
-                    tool,
-                    facets: event.job.facets.clone(),
-                },
-                metadata: NodeMetadata {
-                    name: extract_display_name(&event.job.name),
-                    description: extract_description(&event.job.facets),
-                    tags: extract_tags(&event.job.facets),
-                    owner: extract_owner(&event.job.facets),
-                },
-            };
-            graph.add_node(job_node);
+        // Skip empty lines
+        if line.is_empty() {
+            continue;
         }
 
-        // Process input datasets
-        for input in &event.inputs {
-            let dataset_urn = format!("{}:{}", input.namespace, input.name);
-            let dataset_idx = dataset_registry.len();
-            let dataset_node_id = dataset_registry
-                .entry(dataset_urn.clone())
-                .or_insert_with(|| format!("dataset_{}", dataset_idx));
+        // Parse event from this line
+        let event: RunEvent = serde_json::from_str(&line)
+            .map_err(|e| ParseError::InvalidFormat(
+                format!("Line {}: {}", line_num + 1, e)
+            ))?;
 
-            // Add dataset node if not exists
-            if !graph.nodes.contains_key(dataset_node_id) {
-                let dataset_node = Node {
-                    id: dataset_node_id.clone(),
-                    kind: NodeKind::Dataset {
-                        namespace: input.namespace.clone(),
-                        name: input.name.clone(),
-                        facets: input.facets.clone(),
-                    },
-                    metadata: NodeMetadata {
-                        name: extract_display_name(&input.name),
-                        description: extract_description(&input.facets),
-                        tags: Vec::new(),
-                        owner: None,
-                    },
-                };
-                graph.add_node(dataset_node);
-            }
-
-            // Add edge: Dataset -> Job (job reads from dataset)
-            graph.add_edge(Edge {
-                from: dataset_node_id.clone(),
-                to: job_node_id.clone(),
-                kind: EdgeKind::ReadsFrom,
-            });
-        }
-
-        // Process output datasets
-        for output in &event.outputs {
-            let dataset_urn = format!("{}:{}", output.namespace, output.name);
-            let dataset_idx = dataset_registry.len();
-            let dataset_node_id = dataset_registry
-                .entry(dataset_urn.clone())
-                .or_insert_with(|| format!("dataset_{}", dataset_idx));
-
-            // Add dataset node if not exists
-            if !graph.nodes.contains_key(dataset_node_id) {
-                let dataset_node = Node {
-                    id: dataset_node_id.clone(),
-                    kind: NodeKind::Dataset {
-                        namespace: output.namespace.clone(),
-                        name: output.name.clone(),
-                        facets: output.facets.clone(),
-                    },
-                    metadata: NodeMetadata {
-                        name: extract_display_name(&output.name),
-                        description: extract_description(&output.facets),
-                        tags: Vec::new(),
-                        owner: None,
-                    },
-                };
-                graph.add_node(dataset_node);
-            }
-
-            // Add edge: Job -> Dataset (job writes to dataset)
-            graph.add_edge(Edge {
-                from: job_node_id.clone(),
-                to: dataset_node_id.clone(),
-                kind: EdgeKind::WritesTo,
-            });
-        }
+        // Process event and add to graph incrementally
+        process_event_into_graph(event, &mut graph, &mut dataset_registry, &mut job_registry);
     }
 
     Ok(graph)
+}
+
+/// Build a PipelineGraph from OpenLineage RunEvents (batch mode)
+fn build_graph_from_events(events: Vec<RunEvent>) -> Result<PipelineGraph, ParseError> {
+    let mut graph = PipelineGraph::new();
+    let mut dataset_registry: HashMap<String, String> = HashMap::new();
+    let mut job_registry: HashMap<String, String> = HashMap::new();
+
+    for event in events {
+        process_event_into_graph(event, &mut graph, &mut dataset_registry, &mut job_registry);
+    }
+
+    Ok(graph)
+}
+
+/// Process a single OpenLineage event and add it to the graph
+///
+/// This function is shared by both batch and streaming parsers.
+/// It maintains registries to ensure consistent node IDs across events.
+fn process_event_into_graph(
+    event: RunEvent,
+    graph: &mut PipelineGraph,
+    dataset_registry: &mut HashMap<String, String>,
+    job_registry: &mut HashMap<String, String>,
+) {
+    // Extract job information
+    let job_key = format!("{}:{}", event.job.namespace, event.job.name);
+    let job_idx = job_registry.len();
+    let job_node_id = job_registry
+        .entry(job_key.clone())
+        .or_insert_with(|| format!("job_{}", job_idx));
+
+    // Determine tool type from namespace
+    let tool = detect_tool_type(&event.job.namespace);
+
+    // Only add job node once (on first event)
+    if !graph.nodes.contains_key(job_node_id) {
+        let job_node = Node {
+            id: job_node_id.clone(),
+            kind: NodeKind::Job {
+                namespace: event.job.namespace.clone(),
+                name: event.job.name.clone(),
+                tool,
+                facets: event.job.facets.clone(),
+            },
+            metadata: NodeMetadata {
+                name: extract_display_name(&event.job.name),
+                description: extract_description(&event.job.facets),
+                tags: extract_tags(&event.job.facets),
+                owner: extract_owner(&event.job.facets),
+            },
+        };
+        graph.add_node(job_node);
+    }
+
+    // Process input datasets
+    for input in &event.inputs {
+        let dataset_urn = format!("{}:{}", input.namespace, input.name);
+        let dataset_idx = dataset_registry.len();
+        let dataset_node_id = dataset_registry
+            .entry(dataset_urn.clone())
+            .or_insert_with(|| format!("dataset_{}", dataset_idx));
+
+        // Add dataset node if not exists
+        if !graph.nodes.contains_key(dataset_node_id) {
+            let dataset_node = Node {
+                id: dataset_node_id.clone(),
+                kind: NodeKind::Dataset {
+                    namespace: input.namespace.clone(),
+                    name: input.name.clone(),
+                    facets: input.facets.clone(),
+                },
+                metadata: NodeMetadata {
+                    name: extract_display_name(&input.name),
+                    description: extract_description(&input.facets),
+                    tags: Vec::new(),
+                    owner: None,
+                },
+            };
+            graph.add_node(dataset_node);
+        }
+
+        // Add edge: Dataset -> Job (job reads from dataset)
+        graph.add_edge(Edge {
+            from: dataset_node_id.clone(),
+            to: job_node_id.clone(),
+            kind: EdgeKind::ReadsFrom,
+        });
+    }
+
+    // Process output datasets
+    for output in &event.outputs {
+        let dataset_urn = format!("{}:{}", output.namespace, output.name);
+        let dataset_idx = dataset_registry.len();
+        let dataset_node_id = dataset_registry
+            .entry(dataset_urn.clone())
+            .or_insert_with(|| format!("dataset_{}", dataset_idx));
+
+        // Add dataset node if not exists
+        if !graph.nodes.contains_key(dataset_node_id) {
+            let dataset_node = Node {
+                id: dataset_node_id.clone(),
+                kind: NodeKind::Dataset {
+                    namespace: output.namespace.clone(),
+                    name: output.name.clone(),
+                    facets: output.facets.clone(),
+                },
+                metadata: NodeMetadata {
+                    name: extract_display_name(&output.name),
+                    description: extract_description(&output.facets),
+                    tags: Vec::new(),
+                    owner: None,
+                },
+            };
+            graph.add_node(dataset_node);
+        }
+
+        // Add edge: Job -> Dataset (job writes to dataset)
+        graph.add_edge(Edge {
+            from: job_node_id.clone(),
+            to: dataset_node_id.clone(),
+            kind: EdgeKind::WritesTo,
+        });
+    }
 }
 
 /// Detect tool type from OpenLineage namespace

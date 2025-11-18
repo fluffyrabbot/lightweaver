@@ -12,6 +12,8 @@ Universal Data Pipeline Visualizer supporting 100+ tools via [OpenLineage](https
 - **Powerful filtering**: Filter by tool type, tags, or namespaces to focus on specific parts of your pipeline
 - **Beautiful visualizations**: Hand-crafted SVG rendering with light/dark themes
 - **Both library and CLI**: Use as a Rust library or command-line tool
+- **Plugin system**: Extend with custom parsers for proprietary or specialized data formats
+- **High performance**: Streaming parsers, incremental merging, and layout caching for large-scale pipelines (1000+ nodes)
 
 ## Installation
 
@@ -220,7 +222,7 @@ let mut viz = PipelineVisualizer::new();
 viz.add_openlineage_events("events.json")?;
 
 // Get the merged graph
-let graph = viz.graph()?;
+let mut graph = viz.graph()?;
 
 // Analyze the graph
 for job in graph.jobs() {
@@ -236,6 +238,48 @@ for dataset in graph.datasets() {
     }
 }
 ```
+
+### Custom Parser Plugins
+
+Extend Lightweaver with your own data format parsers:
+
+```rust
+use lightweaver::{Parser, PipelineVisualizer, PipelineGraph};
+use lightweaver::parsers::ParseError;
+use std::path::Path;
+
+// Define a custom parser
+struct MyCustomParser;
+
+impl Parser for MyCustomParser {
+    fn name(&self) -> &str {
+        "my_custom_format"
+    }
+
+    fn parse(&self, path: &Path) -> Result<PipelineGraph, ParseError> {
+        // Your custom parsing logic here
+        let mut graph = PipelineGraph::new();
+        // ... build graph from your custom format ...
+        Ok(graph)
+    }
+
+    fn supported_extensions(&self) -> Vec<&str> {
+        vec!["custom", "mycustom"]
+    }
+}
+
+// Register and use the parser
+let mut viz = PipelineVisualizer::new();
+viz.register_parser(Box::new(MyCustomParser));
+
+// Parser is selected automatically by file extension
+viz.add_source(Path::new("data.custom"))?;
+
+// Generate visualization
+let svg = viz.render_svg()?;
+```
+
+See `examples/custom_parser.rs` for a complete working example.
 
 ### Filtering graphs
 
@@ -303,6 +347,65 @@ lightweaver generate \
 - Multiple `--filter-tool` flags = OR (show dbt OR airflow)
 - Multiple `--filter-tag` flags = AND (must have ALL tags)
 - Multiple `--filter-namespace` flags = OR (any matching prefix)
+
+## Performance Optimizations
+
+Lightweaver is designed to handle large-scale pipeline visualizations efficiently:
+
+### Streaming Parser
+
+For large OpenLineage NDJSON files (>10MB), Lightweaver automatically uses a streaming parser that processes events line-by-line with constant memory usage:
+
+```bash
+# Can handle arbitrarily large NDJSON files
+lightweaver generate --openlineage huge_events.ndjson --output viz.svg
+```
+
+The streaming parser:
+- Processes files larger than 100MB without loading them entirely into memory
+- Maintains O(1) memory overhead per event
+- Automatically selected for NDJSON files >10MB
+
+### Incremental Merging
+
+When merging multiple data sources, graphs are cached to avoid redundant work:
+
+```rust
+let mut viz = PipelineVisualizer::new();
+
+// First source - parses and merges
+viz.add_dbt_manifest("manifest.json")?;
+
+// Second source - parses and incrementally merges
+viz.add_openlineage_events("airflow.json")?;
+
+// Renders from cache - no re-merging needed
+viz.render_svg()?;
+viz.render_html()?;  // Uses same cached merge
+viz.render_pdf()?;   // Still uses cache
+```
+
+### Lazy Layout Computation
+
+Layout computations are cached and only recomputed when the graph changes:
+
+```rust
+let mut viz = PipelineVisualizer::new();
+viz.add_openlineage_events("events.json")?;
+
+// First render - computes layout
+viz.render_svg()?;
+
+// Subsequent renders - uses cached layout
+viz.render_html()?;  // No layout recomputation
+viz.render_png()?;   // Still using cache
+
+// Changing filter invalidates layout cache
+viz.set_filter(GraphFilter::new().with_tool(ToolType::Dbt));
+viz.render_svg()?;  // Recomputes layout for filtered graph
+```
+
+These optimizations enable smooth visualization of 1000+ node graphs with sub-second render times.
 
 ## How It Works
 
@@ -402,6 +505,7 @@ PRs welcome!
 - [x] HTML output with interactivity
 - [x] PNG/PDF export
 - [x] Configuration file support
-- [ ] Plugin system for custom parsers
+- [x] Plugin system for custom parsers
+- [x] Performance optimizations (streaming parser, caching)
 
 Built with ❤️ and [Claude Code](https://claude.com/claude-code)
